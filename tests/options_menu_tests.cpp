@@ -118,6 +118,8 @@ void testModInitialize() {
     const RecordedPage& page = recordedPages[0];
     check(page.items.size() == 9 && page.title == L"Tweaks", "the page holds all 9 options under the Mod's name");
     check(page.items[0].kind == wots4::optionToggle && page.items[0].choiceCount == 2, "a toggle has 2 choices");
+    check(page.items[0].defaultValue == tweaks::toggleOn && page.items[2].defaultValue == tweaks::toggleOff,
+        "each option's default is passed for the reset button");
     check(page.items[5].kind == wots4::optionChoice && page.items[5].choiceCount == 3,
         "the failing tweak is left out, so beta follows alpha");
     check(std::wstring(page.items[8].label.english) == L"Beta 4", "the last option is the 9th item");

@@ -79,7 +79,7 @@ bool OptionsMenu::addPage(const wots4::ModContext& context) {
     items.reserve(entries.size());
     for (const Entry& entry : entries) {
         const Option& option = *entry.option;
-        items.push_back({option.kind, option.label, option.choices, option.choiceCount});
+        items.push_back({option.kind, option.label, option.choices, option.choiceCount, option.defaultValue});
     }
     // The same in both languages: "Tweaks" is the Mod's name.
     const wots4::LocalizedText title{pageTitle, pageTitle};
