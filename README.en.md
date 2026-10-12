@@ -20,6 +20,7 @@ A collection of small "nice to have" adjustments (tweaks). Each tweak can be swi
   - You do not see the fights and conversations with the targets. Accepting Grandpa's Memories (Part 1) or A Lid On Something Stinky (Part 1) also accepts Part 2, and both parts succeed.
 - **Guaranteed Wooing**: when you woo someone, you always make a nighttime promise, whatever you answer. Wooing a named character (Akagi, Kogure, Kotobuki, Moro, Kinugawa, J.J. or Dojima) with Nightly Pleasure Martial Arts also makes the promise on the first try, at any level of the style. People who cannot be wooed, and anyone when you already have a partner for tonight, still turn you down.
 - **Best Smithing**: when you ask the Smithy to Refine or Recast a weapon to make it stronger, the attack always goes up by the largest amount (Dojima's extra bonus too). Making it harder or polishing it always gives fixed values, so they are not changed.
+- **Guaranteed Pupils**: asking someone to become your pupil always succeeds. Without a dojo, with the dojo closed, or with a full dojo (20 pupils), you are still turned down.
 
   The options are shown in the game's language (Japanese or English).
 
