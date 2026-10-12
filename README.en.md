@@ -21,6 +21,7 @@ A collection of small "nice to have" adjustments (tweaks). Each tweak can be swi
 - **Guaranteed Wooing**: when you woo someone, you always make a nighttime promise, whatever you answer. Wooing a named character (Akagi, Kogure, Kotobuki, Moro, Kinugawa, J.J. or Dojima) with Nightly Pleasure Martial Arts also makes the promise on the first try, at any level of the style. People who cannot be wooed, and anyone when you already have a partner for tonight, still turn you down.
 - **Best Smithing**: when you ask the Smithy to Refine or Recast a weapon to make it stronger, the attack always goes up by the largest amount (Dojima's extra bonus too). Making it harder or polishing it always gives fixed values, so they are not changed.
 - **Guaranteed Pupils**: asking someone to become your pupil always succeeds. Without a dojo, with the dojo closed, or with a full dojo (20 pupils), you are still turned down.
+- **Pupils Survive Challengers**: dojo challengers no longer cost you pupils. Talking to the pupil who brings the news is an ordinary conversation, and no pupil dies or loses the dojo. Pupils who appear while challengers are in do not fall in the fight at the dojo, however hard they are hit. Pupils can still die in other ways, such as when you cut them down in town.
 
   The options are shown in the game's language (Japanese or English).
 

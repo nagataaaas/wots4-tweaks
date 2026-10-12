@@ -29,7 +29,8 @@ set(TWEAKS_TWEAK_SOURCES
     src/script_patch/script_patch.cpp
     src/persuade_success/persuade_success.cpp
     src/smith_best_roll/smith_best_roll.cpp
-    src/recruit_success/recruit_success.cpp)
+    src/recruit_success/recruit_success.cpp
+    src/pupil_survival/pupil_survival.cpp)
 
 # Use the Mod's folder name in the game folder (mods/<name>/) as <name>
 wots4_add_mod(tweaks SOURCES ${TWEAKS_CORE_SOURCES} ${TWEAKS_TWEAK_SOURCES} DEF src/mod.def
@@ -63,4 +64,5 @@ if(WOTS4_BUILD_TESTS)
         "${script_folder}/Script/AsScriptPack.l" "${script_folder}/UserCommand/AsUserCmdPack.l")
     tweaks_add_native_probe(smith_best_roll_native_probe)
     tweaks_add_native_probe(recruit_success_native_probe "${script_folder}/Script/AsScriptPack.l")
+    tweaks_add_native_probe(pupil_survival_native_probe)
 endif()
