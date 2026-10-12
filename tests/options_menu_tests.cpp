@@ -113,21 +113,23 @@ void testModInitialize() {
         "the malformed definition is logged");
     check(anyLogContains("Tweak failing could not be installed"), "a failed install is logged");
 
-    check(recordedPages.size() == 2, "9 options make 2 pages");
-    if (recordedPages.size() != 2) return;
-    check(recordedPages[0].items.size() == 8 && recordedPages[1].items.size() == 1, "the pages hold 8 and 1 options");
-    check(recordedPages[0].title == L"Tweaks 1/2" && recordedPages[1].title == L"Tweaks 2/2", "the titles count pages");
-    check(recordedPages[0].items[0].kind == wots4::optionToggle && recordedPages[0].items[0].choiceCount == 2,
-        "a toggle has 2 choices");
-    check(recordedPages[0].items[5].kind == wots4::optionChoice && recordedPages[0].items[5].choiceCount == 3,
+    check(recordedPages.size() == 1, "9 options make 1 page (the ModLoader scrolls it)");
+    if (recordedPages.size() != 1) return;
+    const RecordedPage& page = recordedPages[0];
+    check(page.items.size() == 9 && page.title == L"Tweaks", "the page holds all 9 options under the Mod's name");
+    check(page.items[0].kind == wots4::optionToggle && page.items[0].choiceCount == 2, "a toggle has 2 choices");
+    check(page.items[5].kind == wots4::optionChoice && page.items[5].choiceCount == 3,
         "the failing tweak is left out, so beta follows alpha");
-    check(std::wstring(recordedPages[1].items[0].label.english) == L"Beta 4", "the last option is on the second page");
-    check(anyLogContains("2 of 4 tweaks installed, 9 options on 2 options pages"), "the summary is logged");
+    check(std::wstring(page.items[8].label.english) == L"Beta 4", "the last option is the 9th item");
+    check(anyLogContains("2 of 4 tweaks installed, 9 options, options page added"), "the summary is logged");
 
-    const RecordedPage& first = recordedPages[0];
-    uint32_t values[8] = {};
-    first.callbacks.read(first.callbacks.context, values, 8);
-    check(values[0] == 0 && values[1] == 1 && values[5] == 2 && values[6] == 1, "read reports the current values");
+    uint32_t values[9] = {};
+    page.callbacks.read(page.callbacks.context, values, 9);
+    check(values[0] == 0 && values[1] == 1 && values[5] == 2 && values[6] == 1 && values[8] == betaValues[3],
+        "read reports the current values");
+    uint32_t untouched[9] = {7, 7, 7, 7, 7, 7, 7, 7, 7};
+    page.callbacks.read(page.callbacks.context, untouched, 8);
+    check(untouched[0] == 7, "read with another item count writes nothing");
 
     check(optionsSavedCallback != nullptr, "the options save is watched");
     if (!optionsSavedCallback) return;
@@ -135,12 +137,11 @@ void testModInitialize() {
     optionsSavedCallback(optionsSavedContext);
     check(!configExists(), "config.ini is not written when nothing changed");
 
-    const RecordedPage& second = recordedPages[1];
-    second.callbacks.changed(second.callbacks.context, 0, 0);
-    check(betaValues[3] == 0 && betaLastApplied == 0, "a change sets the value and calls applied");
-    second.callbacks.changed(second.callbacks.context, 0, 3);
+    page.callbacks.changed(page.callbacks.context, 8, 0);
+    check(betaValues[3] == 0 && betaLastApplied == 0, "a change of the 9th item sets the value and calls applied");
+    page.callbacks.changed(page.callbacks.context, 8, 3);
     check(betaValues[3] == 0, "a value outside the choices is ignored");
-    first.callbacks.changed(first.callbacks.context, 2, tweaks::toggleOn);
+    page.callbacks.changed(page.callbacks.context, 2, tweaks::toggleOn);
     optionsSavedCallback(optionsSavedContext);
     check(readSetting(L"beta", L"fourth") == 0 && readSetting(L"alpha", L"third") == 1,
         "the options save writes the changed values");
@@ -168,13 +169,13 @@ void testPageBoundaries() {
     recordedPages.clear();
 
     tweaks::OptionsMenu empty(configPath, logToFakeHost);
-    check(empty.neededPageCount() == 0 && empty.addPages(context) == 0 && recordedPages.empty(),
-        "no options add no page");
+    check(!empty.addPage(context) && recordedPages.empty(), "no options add no page");
 
     tweaks::OptionsMenu eight(configPath, logToFakeHost);
     eight.add(exactlyEight);
-    check(eight.addPages(context) == 1 && recordedPages.size() == 1, "8 options fit on 1 page");
-    check(!recordedPages.empty() && recordedPages[0].title == L"Tweaks", "a single page has no page number");
+    check(eight.addPage(context) && recordedPages.size() == 1, "8 options make 1 page");
+    check(!eight.addPage(context) && recordedPages.size() == 1, "the page is added only once");
+    check(!recordedPages.empty() && recordedPages[0].title == L"Tweaks", "the page is titled with the Mod's name");
     check(!recordedPages.empty() && recordedPages[0].items[0].label.japanese == eightLabel.japanese &&
               recordedPages[0].items[0].label.english == eightLabel.english,
         "both languages of a label are passed to the ModLoader");
@@ -182,8 +183,8 @@ void testPageBoundaries() {
     refusePages = true;
     tweaks::OptionsMenu refused(configPath, logToFakeHost);
     refused.add(exactlyEight);
-    check(refused.addPages(context) == 0, "a refused page is not counted");
-    check(anyLogContains("did not accept options page 1 of 1 (8 options)"), "a refused page is logged");
+    check(!refused.addPage(context), "a refused page is reported");
+    check(anyLogContains("did not accept the options page (8 options)"), "a refused page is logged");
     refusePages = false;
 }
 

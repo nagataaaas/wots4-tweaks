@@ -1,5 +1,5 @@
-// Collects the options of the tweaks, shows them on options pages of up to 8 options,
-// and keeps their values in config.ini.
+// Collects the options of the tweaks, shows them on one options page (the ModLoader
+// scrolls it past wots4::optionsItemsPerScreen options), and keeps their values in config.ini.
 #pragma once
 #include <cstdint>
 #include <string>
@@ -14,7 +14,7 @@ using LogFunction = void (*)(const char* message);
 class OptionsMenu {
 public:
     OptionsMenu(std::wstring configPath, LogFunction log);
-    // The ModLoader keeps pointers to the pages, so the menu never moves.
+    // The ModLoader keeps a pointer to the menu, so it never moves.
     OptionsMenu(const OptionsMenu&) = delete;
     OptionsMenu& operator=(const OptionsMenu&) = delete;
 
@@ -24,28 +24,22 @@ public:
     // Adds the options of a well-formed tweak, sets each value from config.ini
     // (the default if missing or invalid) and calls its applied callback.
     void add(const Tweak& tweak);
-    // Adds the options pages to the ModLoader. Call once, during Wots4ModInitialize,
-    // after every add. Returns how many pages the ModLoader accepted.
-    uint32_t addPages(const wots4::ModContext& context);
+    // Adds the options page to the ModLoader. Call once, during Wots4ModInitialize,
+    // after every add. False if there are no options or the ModLoader refused the page.
+    bool addPage(const wots4::ModContext& context);
     // Writes every value to config.ini if the player changed any since the last save.
     void saveIfChanged();
 
     size_t optionCount() const { return entries.size(); }
-    uint32_t neededPageCount() const;
 
 private:
     struct Entry {
         const Tweak* tweak;
         const Option* option;
     };
-    struct Page {
-        OptionsMenu* menu;
-        size_t firstEntry;
-        uint32_t entryCount;
-    };
 
-    static void WINAPI readPage(void* page, uint32_t* values, uint32_t count);
-    static void WINAPI changeOption(void* page, uint32_t item, uint32_t value);
+    static void WINAPI readPage(void* menu, uint32_t* values, uint32_t count);
+    static void WINAPI changeOption(void* menu, uint32_t item, uint32_t value);
 
     uint32_t readSavedValue(const Tweak& tweak, const Option& option) const;
     bool writeValues();
@@ -54,7 +48,7 @@ private:
     std::wstring configPath;
     LogFunction log;
     std::vector<Entry> entries;
-    std::vector<Page> pages;
+    bool pageAdded = false;
     bool changedSinceSave = false;
 };
 

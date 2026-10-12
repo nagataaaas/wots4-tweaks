@@ -57,18 +57,18 @@ extern "C" BOOL WINAPI ModInitialize(const wots4::ModContext* context) {
 
     const std::vector<const tweaks::Tweak*> tweakList = tweaks::registeredTweaks();
     const uint32_t installedCount = installTweaks(*context, tweakList);
-    uint32_t acceptedPages = 0;
+    bool pageAdded = false;
     if (optionsMenu->optionCount() > 0) {
-        acceptedPages = optionsMenu->addPages(*context);
+        pageAdded = optionsMenu->addPage(*context);
         if (!host->onOptionsSaved(self, saveOptions, nullptr))
             hostLog("[ERROR] Could not watch the game's options save; option changes apply until the game exits "
                     "but are not saved to config.ini.");
     }
 
     char line[256];
-    sprintf_s(line, "[INFO] Tweaks initialized: %u of %u tweaks installed, %u options on %u options pages.",
+    sprintf_s(line, "[INFO] Tweaks initialized: %u of %u tweaks installed, %u options, options page %s.",
         installedCount, static_cast<uint32_t>(tweakList.size()), static_cast<uint32_t>(optionsMenu->optionCount()),
-        acceptedPages);
+        pageAdded ? "added" : "not added");
     hostLog(line);
     return TRUE;
 }

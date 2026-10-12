@@ -5,7 +5,7 @@
 > [!NOTE]
 > This Mod is for the [Steam version of Way of the Samurai 4](https://store.steampowered.com/app/312780/4/?l=english) only.
 
-A collection of small "nice to have" adjustments (tweaks). Each tweak can be switched on its own from the "Tweaks" pages added to the game's options.
+A collection of small "nice to have" adjustments (tweaks). Each tweak can be switched on its own from the "Tweaks" page added to the game's options.
 
 ## Features
 
@@ -28,6 +28,6 @@ A collection of small "nice to have" adjustments (tweaks). Each tweak can be swi
 
 ## Settings
 
-Switch the tweaks on the "Tweaks" pages added to the options on the title screen and to 各種設定 in the pause menu. With more than 8 tweak options, the pages are split, as in "Tweaks 1/2" and "Tweaks 2/2".
+Switch the tweaks on the "Tweaks" page added to the options on the title screen and to 各種設定 in the pause menu. With more than 8 options, the page scrolls up and down.
 
 Your settings are saved to `{game installation folder}/mods/tweaks/config.ini` when the game saves its options, and are kept the next time you start the game.

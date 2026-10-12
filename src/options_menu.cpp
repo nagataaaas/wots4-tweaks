@@ -1,5 +1,4 @@
 #include "options_menu.h"
-#include <algorithm>
 #include <cstdarg>
 #include <cstdio>
 #include <cwchar>
@@ -74,62 +73,41 @@ uint32_t OptionsMenu::readSavedValue(const Tweak& tweak, const Option& option) c
     return option.defaultValue;
 }
 
-uint32_t OptionsMenu::neededPageCount() const {
-    return static_cast<uint32_t>((entries.size() + wots4::maxOptionsItems - 1) / wots4::maxOptionsItems);
-}
-
-uint32_t OptionsMenu::addPages(const wots4::ModContext& context) {
-    if (!pages.empty()) return 0;
-    const uint32_t pageCount = neededPageCount();
-    // The ModLoader passes pointers into pages to readPage and changeOption, so it must never reallocate.
-    pages.reserve(pageCount);
-
-    uint32_t acceptedPages = 0;
-    for (uint32_t pageIndex = 0; pageIndex < pageCount; ++pageIndex) {
-        const size_t firstEntry = static_cast<size_t>(pageIndex) * wots4::maxOptionsItems;
-        const uint32_t entryCount =
-            static_cast<uint32_t>(std::min<size_t>(wots4::maxOptionsItems, entries.size() - firstEntry));
-        pages.push_back({this, firstEntry, entryCount});
-
-        wots4::OptionItem items[wots4::maxOptionsItems];
-        for (uint32_t item = 0; item < entryCount; ++item) {
-            const Option& option = *entries[firstEntry + item].option;
-            items[item] = {option.kind, option.label, option.choices, option.choiceCount};
-        }
-        wchar_t titleText[wots4::maxOptionsTitleChars + 1];
-        if (pageCount == 1) wcscpy_s(titleText, pageTitle);
-        else swprintf_s(titleText, L"%ls %u/%u", pageTitle, pageIndex + 1, pageCount);
-        // The same in both languages: "Tweaks" is the Mod's name.
-        const wots4::LocalizedText title{titleText, titleText};
-
-        const wots4::OptionsPageCallbacks callbacks{&pages.back(), readPage, changeOption};
-        if (context.host->addOptionsPage(context.module, &title, items, entryCount, &callbacks)) {
-            ++acceptedPages;
-            continue;
-        }
-        logFormatted("[ERROR] The ModLoader did not accept options page %u of %u (%u options); "
-                     "those options keep their config.ini values but cannot be changed in the game.",
-            pageIndex + 1, pageCount, entryCount);
+bool OptionsMenu::addPage(const wots4::ModContext& context) {
+    if (pageAdded || entries.empty()) return false;
+    std::vector<wots4::OptionItem> items;
+    items.reserve(entries.size());
+    for (const Entry& entry : entries) {
+        const Option& option = *entry.option;
+        items.push_back({option.kind, option.label, option.choices, option.choiceCount});
     }
-    return acceptedPages;
+    // The same in both languages: "Tweaks" is the Mod's name.
+    const wots4::LocalizedText title{pageTitle, pageTitle};
+    const wots4::OptionsPageCallbacks callbacks{this, readPage, changeOption};
+    const auto itemCount = static_cast<uint32_t>(items.size());
+    pageAdded = context.host->addOptionsPage(context.module, &title, items.data(), itemCount, &callbacks) != FALSE;
+    if (!pageAdded)
+        logFormatted("[ERROR] The ModLoader did not accept the options page (%u options); "
+                     "those options keep their config.ini values but cannot be changed in the game.",
+            itemCount);
+    return pageAdded;
 }
 
 void WINAPI OptionsMenu::readPage(void* context, uint32_t* values, uint32_t count) {
-    const Page& page = *static_cast<const Page*>(context);
-    if (count != page.entryCount) return;
-    for (uint32_t item = 0; item < count; ++item)
-        values[item] = *page.menu->entries[page.firstEntry + item].option->value;
+    const OptionsMenu& menu = *static_cast<const OptionsMenu*>(context);
+    if (count != menu.entries.size()) return;
+    for (uint32_t item = 0; item < count; ++item) values[item] = *menu.entries[item].option->value;
 }
 
 void WINAPI OptionsMenu::changeOption(void* context, uint32_t item, uint32_t value) {
-    const Page& page = *static_cast<const Page*>(context);
-    if (item >= page.entryCount) return;
-    const Option& option = *page.menu->entries[page.firstEntry + item].option;
+    OptionsMenu& menu = *static_cast<OptionsMenu*>(context);
+    if (item >= menu.entries.size()) return;
+    const Option& option = *menu.entries[item].option;
     if (value >= option.choiceCount) return;
 
     *option.value = value;
     if (option.applied) option.applied(value);
-    page.menu->changedSinceSave = true;
+    menu.changedSinceSave = true;
 }
 
 void OptionsMenu::saveIfChanged() {
