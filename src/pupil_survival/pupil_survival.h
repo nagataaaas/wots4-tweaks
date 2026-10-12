@@ -3,7 +3,8 @@
 
 namespace tweaks {
 
-// Dojo challengers no longer cost the player pupils: no pupil dies, falls or reports a lost dojo.
+// The pupil who brings news of dojo challengers no longer reports a pupil's death or a lost dojo,
+// and no pupil dies for it.
 extern const Tweak pupilSurvivalTweak;
 
 }  // namespace tweaks
