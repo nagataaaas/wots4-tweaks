@@ -27,6 +27,10 @@ A collection of small "nice to have" adjustments (tweaks). Each tweak can be swi
   - Default: as in the game.
   - Always: the sensei or your pupils always repel them.
   - Never: neither the sensei nor your pupils repel them.
+- **Challenger Appearance**: choose whether dojo challengers come (decided each time you move to another area).
+  - Default: as in the game.
+  - Always: challengers always come when they can. As in the game, they do not come at night, when you leave the dojo, when you have no pupils, or when the dojo's reputation is at its lowest.
+  - Never: challengers no longer come.
 
   The options are shown in the game's language (Japanese or English).
 

@@ -32,7 +32,8 @@ set(TWEAKS_TWEAK_SOURCES
     src/recruit_success/recruit_success.cpp
     src/pupil_survival/pupil_survival.cpp
     src/pupil_hidden/pupil_hidden.cpp
-    src/dojo_raid_defeat/dojo_raid_defeat.cpp)
+    src/dojo_raid_defeat/dojo_raid_defeat.cpp
+    src/dojo_raid_appearance/dojo_raid_appearance.cpp)
 
 # Use the Mod's folder name in the game folder (mods/<name>/) as <name>
 wots4_add_mod(tweaks SOURCES ${TWEAKS_CORE_SOURCES} ${TWEAKS_TWEAK_SOURCES} DEF src/mod.def
@@ -69,4 +70,5 @@ if(WOTS4_BUILD_TESTS)
     tweaks_add_native_probe(pupil_survival_native_probe)
     tweaks_add_native_probe(pupil_hidden_native_probe)
     tweaks_add_native_probe(dojo_raid_defeat_native_probe)
+    tweaks_add_native_probe(dojo_raid_appearance_native_probe)
 endif()
