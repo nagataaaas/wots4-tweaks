@@ -1,0 +1,45 @@
+cmake_minimum_required(VERSION 3.25)
+project(wots4_mod_tweaks LANGUAGES C CXX)
+
+# When building standalone, pass -DWOTS4_SDK_DIR=<path to wots4-mods>
+if(NOT COMMAND wots4_add_mod)
+    set(WOTS4_SDK_DIR "" CACHE PATH "Path to wots4-mods (ModLoader)")
+    if(NOT EXISTS "${WOTS4_SDK_DIR}/cmake/Wots4.cmake")
+        message(FATAL_ERROR "Set WOTS4_SDK_DIR to the path of wots4-mods")
+    endif()
+    include(${WOTS4_SDK_DIR}/cmake/Wots4.cmake)
+    enable_testing()
+    set(WOTS4_BUILD_TESTS ON)
+endif()
+
+wots4_use_minhook()
+
+# The entry point and the options menu, shared by mod.dll and the tests
+set(TWEAKS_CORE_SOURCES
+    src/mod.cpp
+    src/options_menu.cpp)
+# Each tweak adds its sources in src/<tweak name>/ here
+set(TWEAKS_TWEAK_SOURCES
+    src/tweak_list.cpp
+    src/laura_yobai/laura_yobai.cpp)
+
+# Use the Mod's folder name in the game folder (mods/<name>/) as <name>
+wots4_add_mod(tweaks SOURCES ${TWEAKS_CORE_SOURCES} ${TWEAKS_TWEAK_SOURCES} DEF src/mod.def
+    LIBS wots4_minhook
+    LICENSES docs/licenses/minhook.txt
+    NO_RELEASE)
+if(WOTS4_BUILD_TESTS)
+    # The test tweak list stands in for the real tweaks
+    wots4_add_probe(tweaks_options_menu_tests
+        SOURCES ${TWEAKS_CORE_SOURCES} tests/options_menu_tests.cpp tests/test_tweak_list.cpp)
+    # Checks, with synthetic definitions, how the Laura mark is set for each setting
+    wots4_add_probe(laura_yobai_probe SOURCES tests/laura_yobai_probe.cpp)
+    # Loads mod.dll into a copy of the exe and starts night visits with synthetic game objects
+    # (the game is not started)
+    set(WOTS4_UNPACKED_EXE "${WOTS4_ROOT}/research/bin/WayOfTheSamurai4.unpacked.exe" CACHE FILEPATH "Decrypted exe")
+    file(TO_NATIVE_PATH "${WOTS4_UNPACKED_EXE}" unpacked_native)
+    wots4_add_probe(laura_yobai_native_probe SOURCES tests/laura_yobai_native_probe.cpp
+        LINK_OPTIONS /BASE:0x10000000 /DYNAMICBASE
+        ARGS ${unpacked_native} $<TARGET_FILE:mod_tweaks> NEEDS_EXE)
+    add_dependencies(laura_yobai_native_probe mod_tweaks)
+endif()
