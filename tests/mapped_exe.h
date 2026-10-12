@@ -101,9 +101,9 @@ inline BOOL WINAPI hostClaim(HMODULE, uintptr_t address, uint32_t length) {
     return TRUE;
 }
 inline void WINAPI hostReleaseClaims(HMODULE) { claims.clear(); }
-inline BOOL WINAPI hostAddOptionsPage(HMODULE, const wchar_t* title, const wots4::OptionItem* items, uint32_t count,
-    const wots4::OptionsPageCallbacks* callbacks) {
-    pages.push_back({title, std::vector<wots4::OptionItem>(items, items + count), *callbacks});
+inline BOOL WINAPI hostAddOptionsPage(HMODULE, const wots4::LocalizedText* title, const wots4::OptionItem* items,
+    uint32_t count, const wots4::OptionsPageCallbacks* callbacks) {
+    pages.push_back({title->english, std::vector<wots4::OptionItem>(items, items + count), *callbacks});
     return TRUE;
 }
 inline BOOL WINAPI hostOnFrame(HMODULE, wots4::GameEventCallback, void*) { return TRUE; }

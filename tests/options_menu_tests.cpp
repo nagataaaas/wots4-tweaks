@@ -36,10 +36,10 @@ void WINAPI fakeLog(HMODULE, const char* message) {
 }
 BOOL WINAPI fakeClaim(HMODULE, uintptr_t, uint32_t) { return TRUE; }
 void WINAPI fakeReleaseClaims(HMODULE) {}
-BOOL WINAPI fakeAddOptionsPage(HMODULE, const wchar_t* title, const wots4::OptionItem* items, uint32_t count,
-    const wots4::OptionsPageCallbacks* callbacks) {
+BOOL WINAPI fakeAddOptionsPage(HMODULE, const wots4::LocalizedText* title, const wots4::OptionItem* items,
+    uint32_t count, const wots4::OptionsPageCallbacks* callbacks) {
     if (refusePages) return FALSE;
-    recordedPages.push_back({title, std::vector<wots4::OptionItem>(items, items + count), *callbacks});
+    recordedPages.push_back({title->english, std::vector<wots4::OptionItem>(items, items + count), *callbacks});
     return TRUE;
 }
 BOOL WINAPI fakeOnFrame(HMODULE, wots4::GameEventCallback, void*) { return TRUE; }
@@ -121,7 +121,7 @@ void testModInitialize() {
         "a toggle has 2 choices");
     check(recordedPages[0].items[5].kind == wots4::optionChoice && recordedPages[0].items[5].choiceCount == 3,
         "the failing tweak is left out, so beta follows alpha");
-    check(std::wstring(recordedPages[1].items[0].label) == L"Beta 4", "the last option is on the second page");
+    check(std::wstring(recordedPages[1].items[0].label.english) == L"Beta 4", "the last option is on the second page");
     check(anyLogContains("2 of 4 tweaks installed, 9 options on 2 options pages"), "the summary is logged");
 
     const RecordedPage& first = recordedPages[0];
@@ -149,11 +149,16 @@ void testModInitialize() {
 }
 
 uint32_t exactlyEightValues[8];
+const tweaks::Text eightLabel{L"項目", L"Item"};
 const tweaks::Option exactlyEightOptions[8] = {
-    tweaks::toggle(L"a", L"A", &exactlyEightValues[0], false), tweaks::toggle(L"b", L"B", &exactlyEightValues[1], false),
-    tweaks::toggle(L"c", L"C", &exactlyEightValues[2], false), tweaks::toggle(L"d", L"D", &exactlyEightValues[3], false),
-    tweaks::toggle(L"e", L"E", &exactlyEightValues[4], false), tweaks::toggle(L"f", L"F", &exactlyEightValues[5], false),
-    tweaks::toggle(L"g", L"G", &exactlyEightValues[6], false), tweaks::toggle(L"h", L"H", &exactlyEightValues[7], false),
+    tweaks::toggle(L"a", eightLabel, &exactlyEightValues[0], false),
+    tweaks::toggle(L"b", eightLabel, &exactlyEightValues[1], false),
+    tweaks::toggle(L"c", eightLabel, &exactlyEightValues[2], false),
+    tweaks::toggle(L"d", eightLabel, &exactlyEightValues[3], false),
+    tweaks::toggle(L"e", eightLabel, &exactlyEightValues[4], false),
+    tweaks::toggle(L"f", eightLabel, &exactlyEightValues[5], false),
+    tweaks::toggle(L"g", eightLabel, &exactlyEightValues[6], false),
+    tweaks::toggle(L"h", eightLabel, &exactlyEightValues[7], false),
 };
 const tweaks::Tweak exactlyEight{L"eight", exactlyEightOptions, 8, nullptr};
 
@@ -170,6 +175,9 @@ void testPageBoundaries() {
     eight.add(exactlyEight);
     check(eight.addPages(context) == 1 && recordedPages.size() == 1, "8 options fit on 1 page");
     check(!recordedPages.empty() && recordedPages[0].title == L"Tweaks", "a single page has no page number");
+    check(!recordedPages.empty() && recordedPages[0].items[0].label.japanese == eightLabel.japanese &&
+              recordedPages[0].items[0].label.english == eightLabel.english,
+        "both languages of a label are passed to the ModLoader");
 
     refusePages = true;
     tweaks::OptionsMenu refused(configPath, logToFakeHost);
@@ -181,10 +189,15 @@ void testPageBoundaries() {
 
 void testMalformedDefinitions() {
     uint32_t value = 0;
-    const wchar_t* const threeChoices[] = {L"1", L"2", L"3"};
-    const tweaks::Option toggleWithThree{wots4::optionToggle, L"key", L"Label", threeChoices, 3, 0, &value, nullptr};
-    const tweaks::Option withoutKey = tweaks::toggle(L"", L"Label", &value, false);
-    const tweaks::Option withoutValue = tweaks::toggle(L"key", L"Label", nullptr, false);
+    const tweaks::Text label{L"項目", L"Label"};
+    const tweaks::Text threeChoices[] = {{L"1", L"1"}, {L"2", L"2"}, {L"3", L"3"}};
+    const tweaks::Option toggleWithThree{wots4::optionToggle, L"key", label, threeChoices, 3, 0, &value, nullptr};
+    const tweaks::Option withoutKey = tweaks::toggle(L"", label, &value, false);
+    const tweaks::Option withoutValue = tweaks::toggle(L"key", label, nullptr, false);
+    const tweaks::Option withoutEnglishLabel = tweaks::toggle(L"key", {L"項目", nullptr}, &value, false);
+    const tweaks::Text choiceWithoutJapanese[] = {{L"1", L"1"}, {nullptr, L"2"}};
+    const tweaks::Option withoutJapaneseChoice =
+        tweaks::choice(L"key", label, choiceWithoutJapanese, &value, 0);
     const tweaks::Tweak withoutOptionList{L"list", nullptr, 1, nullptr};
 
     tweaks::OptionsMenu menu(configPath, logToFakeHost);
@@ -192,6 +205,10 @@ void testMalformedDefinitions() {
     check(!menu.isWellFormed(tweaks::Tweak{L"key", &withoutKey, 1, nullptr}), "an option needs a key");
     check(!menu.isWellFormed(tweaks::Tweak{L"value", &withoutValue, 1, nullptr}), "an option needs a value");
     check(!menu.isWellFormed(withoutOptionList), "a tweak with options needs the option list");
+    check(!menu.isWellFormed(tweaks::Tweak{L"label", &withoutEnglishLabel, 1, nullptr}),
+        "a label needs the English text");
+    check(!menu.isWellFormed(tweaks::Tweak{L"choice", &withoutJapaneseChoice, 1, nullptr}),
+        "every choice needs the Japanese text");
     check(!menu.isWellFormed(tweaks::Tweak{nullptr, nullptr, 0, nullptr}), "a tweak needs a name");
     check(menu.isWellFormed(tweaks::Tweak{L"none", nullptr, 0, nullptr}), "a tweak may have no options");
 }

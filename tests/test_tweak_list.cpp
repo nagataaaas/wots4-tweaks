@@ -18,25 +18,30 @@ void betaApplied(uint32_t value) {
     betaLastApplied = value;
 }
 
-const wchar_t* const sizes[] = {L"Small", L"Medium", L"Large"};
+// ModInitialize takes the language from the test machine, so these texts are the same in both.
+tweaks::Text inBoth(const wchar_t* text) {
+    return {text, text};
+}
+
+const tweaks::Text sizes[] = {inBoth(L"Small"), inBoth(L"Medium"), inBoth(L"Large")};
 
 const tweaks::Option alphaOptions[alphaOptionCount] = {
-    tweaks::toggle(L"first", L"Alpha 1", &alphaValues[0], true),
-    tweaks::toggle(L"second", L"Alpha 2", &alphaValues[1], true),
-    tweaks::toggle(L"third", L"Alpha 3", &alphaValues[2], false),
-    tweaks::toggle(L"fourth", L"Alpha 4", &alphaValues[3], false),
-    tweaks::toggle(L"fifth", L"Alpha 5", &alphaValues[4], false),
+    tweaks::toggle(L"first", inBoth(L"Alpha 1"), &alphaValues[0], true),
+    tweaks::toggle(L"second", inBoth(L"Alpha 2"), &alphaValues[1], true),
+    tweaks::toggle(L"third", inBoth(L"Alpha 3"), &alphaValues[2], false),
+    tweaks::toggle(L"fourth", inBoth(L"Alpha 4"), &alphaValues[3], false),
+    tweaks::toggle(L"fifth", inBoth(L"Alpha 5"), &alphaValues[4], false),
 };
 const tweaks::Option betaOptions[betaOptionCount] = {
-    tweaks::choice(L"first", L"Beta 1", sizes, &betaValues[0], 1, betaApplied),
-    tweaks::choice(L"second", L"Beta 2", sizes, &betaValues[1], 1, betaApplied),
-    tweaks::choice(L"third", L"Beta 3", sizes, &betaValues[2], 0, betaApplied),
-    tweaks::choice(L"fourth", L"Beta 4", sizes, &betaValues[3], 2, betaApplied),
+    tweaks::choice(L"first", inBoth(L"Beta 1"), sizes, &betaValues[0], 1, betaApplied),
+    tweaks::choice(L"second", inBoth(L"Beta 2"), sizes, &betaValues[1], 1, betaApplied),
+    tweaks::choice(L"third", inBoth(L"Beta 3"), sizes, &betaValues[2], 0, betaApplied),
+    tweaks::choice(L"fourth", inBoth(L"Beta 4"), sizes, &betaValues[3], 2, betaApplied),
 };
-const tweaks::Option failingOptions[] = {tweaks::toggle(L"enabled", L"Failing", &failingValue, true)};
+const tweaks::Option failingOptions[] = {tweaks::toggle(L"enabled", inBoth(L"Failing"), &failingValue, true)};
 // The default is outside the choices, so the definition is rejected before install.
 const tweaks::Option malformedOptions[] = {
-    {wots4::optionChoice, L"mode", L"Malformed", sizes, 3, 3, &malformedValue, nullptr},
+    {wots4::optionChoice, L"mode", inBoth(L"Malformed"), sizes, 3, 3, &malformedValue, nullptr},
 };
 
 bool installFailing(const wots4::ModContext&) { return false; }

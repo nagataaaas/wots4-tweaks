@@ -3,7 +3,7 @@
 //
 //   static uint32_t enabled;
 //   static const tweaks::Option options[] = {
-//       tweaks::toggle(L"enabled", L"Label shown in the menu", &enabled, false),
+//       tweaks::toggle(L"enabled", {L"日本語の項目名", L"English Label"}, &enabled, false),
 //   };
 //   const tweaks::Tweak exampleTweak{L"example", options, 1, installExample};
 #include "tweak_list.h"

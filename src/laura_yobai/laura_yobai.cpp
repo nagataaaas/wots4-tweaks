@@ -138,10 +138,15 @@ bool install(const wots4::ModContext& context) {
     return true;
 }
 
-// Shown on the options page, so in Japanese like the game's menus.
-const wchar_t* const partnerChoices[] = {L"固定しない", L"偽物", L"本物"};
+// The English follows the game's menus: 夜這い is "Night Crawling", 非表示 is "Don't Display".
+const Text partnerChoices[] = {
+    {L"固定しない", L"Don't Fix"},
+    {L"偽物", L"Fake"},
+    {L"本物", L"Real"},
+};
 const Option options[] = {
-    choice(L"partner", L"ローラの夜這い相手を固定する", partnerChoices, &partnerSetting, partnerAsTheGameDecides),
+    choice(L"partner", {L"ローラの夜這い", L"Laura's Night Crawling"}, partnerChoices, &partnerSetting,
+        partnerAsTheGameDecides),
 };
 
 }  // namespace

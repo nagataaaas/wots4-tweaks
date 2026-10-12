@@ -16,7 +16,7 @@ constexpr size_t maxValueChars = 15;
 // Why the option breaks the limits of the options pages, or nullptr if it does not.
 const char* findDefinitionError(const Option& option) {
     if (!option.key || !*option.key) return "has no config.ini key";
-    if (!option.label) return "has no label";
+    if (!option.label.japanese || !option.label.english) return "has no label in every language";
     if (!option.value) return "has no value to write to";
     if (!option.choices) return "has no choices";
     if (option.kind != wots4::optionToggle && option.kind != wots4::optionChoice) return "has an unknown kind";
@@ -24,6 +24,9 @@ const char* findDefinitionError(const Option& option) {
         return "is a toggle without exactly 2 choices";
     if (option.choiceCount < 2 || option.choiceCount > wots4::maxOptionChoices) return "does not have 2 to 10 choices";
     if (option.defaultValue >= option.choiceCount) return "has a default outside its choices";
+    for (uint32_t index = 0; index < option.choiceCount; ++index)
+        if (!option.choices[index].japanese || !option.choices[index].english)
+            return "has a choice without a text in every language";
     return nullptr;
 }
 
@@ -93,12 +96,14 @@ uint32_t OptionsMenu::addPages(const wots4::ModContext& context) {
             const Option& option = *entries[firstEntry + item].option;
             items[item] = {option.kind, option.label, option.choices, option.choiceCount};
         }
-        wchar_t title[wots4::maxOptionsTitleChars + 1];
-        if (pageCount == 1) wcscpy_s(title, pageTitle);
-        else swprintf_s(title, L"%ls %u/%u", pageTitle, pageIndex + 1, pageCount);
+        wchar_t titleText[wots4::maxOptionsTitleChars + 1];
+        if (pageCount == 1) wcscpy_s(titleText, pageTitle);
+        else swprintf_s(titleText, L"%ls %u/%u", pageTitle, pageIndex + 1, pageCount);
+        // The same in both languages: "Tweaks" is the Mod's name.
+        const wots4::LocalizedText title{titleText, titleText};
 
         const wots4::OptionsPageCallbacks callbacks{&pages.back(), readPage, changeOption};
-        if (context.host->addOptionsPage(context.module, title, items, entryCount, &callbacks)) {
+        if (context.host->addOptionsPage(context.module, &title, items, entryCount, &callbacks)) {
             ++acceptedPages;
             continue;
         }

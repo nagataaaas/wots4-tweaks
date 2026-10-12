@@ -131,9 +131,12 @@ int main(int argc, char** argv) {
     check(*reinterpret_cast<uint8_t*>(va(createPartners)) == 0xe9, "the hook is written at 0x69f280");
     check(pages.size() == 1 && pages[0].items.size() == 1 && pages[0].items[0].kind == wots4::optionChoice &&
               pages[0].items[0].choiceCount == 3 &&
-              std::wstring(pages[0].items[0].label) == L"ローラの夜這い相手を固定する" &&
-              std::wstring(pages[0].items[0].choices[1]) == L"偽物",
-        "one option with the choices not fixed / fake / real is shown");
+              std::wstring(pages[0].items[0].label.japanese) == L"ローラの夜這い" &&
+              std::wstring(pages[0].items[0].label.english) == L"Laura's Night Crawling" &&
+              std::wstring(pages[0].items[0].choices[0].english) == L"Don't Fix" &&
+              std::wstring(pages[0].items[0].choices[1].japanese) == L"偽物" &&
+              std::wstring(pages[0].items[0].choices[2].english) == L"Real",
+        "one option with the choices not fixed / fake / real is passed in both languages");
     if (pages.size() != 1) return 1;
     const wots4::OptionsPageCallbacks& option = pages[0].callbacks;
     uint32_t shownValue = 99;

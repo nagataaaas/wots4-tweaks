@@ -10,12 +10,16 @@ namespace tweaks {
 
 using AppliedCallback = void (*)(uint32_t value);
 
+// A text on the options pages in Japanese and English; the ModLoader shows the one of the
+// game's language. Either may be wots4::gameText(n) (see wots4::localizedGameText).
+using Text = wots4::LocalizedText;
+
 // One row on an options page. Make it with toggle() or choice().
 struct Option {
     wots4::OptionKind kind;
-    const wchar_t* key;    // Key in config.ini. ASCII
-    const wchar_t* label;  // A string or wots4::gameText(n)
-    const wchar_t* const* choices;
+    const wchar_t* key;  // Key in config.ini. ASCII
+    Text label;
+    const Text* choices;
     uint32_t choiceCount;
     uint32_t defaultValue;
     // Owned by the tweak. Its hooks read this directly, so checking an option costs one memory read.
@@ -34,21 +38,21 @@ struct Tweak {
     bool (*install)(const wots4::ModContext& context);
 };
 
-// GameTextUI 211 "有り" and 212 "無し", shown in the game's language.
-inline const wchar_t* const onOffChoices[] = {wots4::gameText(211), wots4::gameText(212)};
+// GameTextUI 211 "有り" / "Enable" and 212 "無し" / "Disable".
+inline const Text onOffChoices[] = {wots4::localizedGameText(211), wots4::localizedGameText(212)};
 constexpr uint32_t toggleOn = 1;
 constexpr uint32_t toggleOff = 0;
 
 // An on / off option. *value is toggleOn or toggleOff.
-inline Option toggle(const wchar_t* key, const wchar_t* label, uint32_t* value, bool onByDefault,
+inline Option toggle(const wchar_t* key, Text label, uint32_t* value, bool onByDefault,
     AppliedCallback applied = nullptr) {
     return {wots4::optionToggle, key, label, onOffChoices, 2, onByDefault ? toggleOn : toggleOff, value, applied};
 }
 
 // An option with 2 to 10 choices. *value is the index of the choice.
 template <uint32_t choiceCount>
-Option choice(const wchar_t* key, const wchar_t* label, const wchar_t* const (&choices)[choiceCount],
-    uint32_t* value, uint32_t defaultChoice, AppliedCallback applied = nullptr) {
+Option choice(const wchar_t* key, Text label, const Text (&choices)[choiceCount], uint32_t* value,
+    uint32_t defaultChoice, AppliedCallback applied = nullptr) {
     static_assert(choiceCount >= 2 && choiceCount <= wots4::maxOptionChoices, "a choice option has 2 to 10 choices");
     return {wots4::optionChoice, key, label, choices, choiceCount, defaultChoice, value, applied};
 }

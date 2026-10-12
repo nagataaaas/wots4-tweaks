@@ -9,10 +9,12 @@ A collection of small "nice to have" adjustments (tweaks). Each tweak can be swi
 
 ## Features
 
-- **ローラの夜這い相手を固定する (fix Laura's night visit partner)**: choose who waits in the futon when you have promised a night visit (yobai) with Laura.
-  - 固定しない (not fixed): as in the game. Which one you get depends on things such as whether the game was restarted after the promise.
-  - 偽物 (fake): when you lift the futon, someone disguised as Laura takes her place.
-  - 本物 (real): the night visit is with Laura herself.
+- **Laura's Night Crawling**: fix who waits in the futon when you have a night crawling appointment with Laura.
+  - Don't Fix: as in the game. Which one you get depends on things such as whether the game was restarted after the appointment.
+  - Fake: when you lift the futon, someone disguised as Laura takes her place.
+  - Real: the night crawling is with Laura herself.
+
+  The options are shown in the game's language (Japanese or English).
 
 ## Installation
 
