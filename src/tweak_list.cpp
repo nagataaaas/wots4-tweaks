@@ -15,12 +15,13 @@
 #include "smith_best_roll/smith_best_roll.h"
 #include "recruit_success/recruit_success.h"
 #include "pupil_survival/pupil_survival.h"
+#include "pupil_hidden/pupil_hidden.h"
 
 namespace tweaks {
 
 std::vector<const Tweak*> registeredTweaks() {
     return {&lauraYobaiTweak, &lootDropTweak, &customStyleLimitTweak, &instantJobTweak, &persuadeSuccessTweak,
-        &smithBestRollTweak, &recruitSuccessTweak, &pupilSurvivalTweak};
+        &smithBestRollTweak, &recruitSuccessTweak, &pupilSurvivalTweak, &pupilHiddenTweak};
 }
 
 }  // namespace tweaks
