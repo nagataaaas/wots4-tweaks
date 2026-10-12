@@ -56,12 +56,10 @@ bool isMessengerCheck(const uint8_t* state) {
     return function && readAt<uint32_t>(function + functionIndexOffset) == talkedToByMessengerFunction;
 }
 
-// Runs each time an action script checks for challengers; reads four values at most. The log
-// line is written only when the messenger's talk is turned into an ordinary one, which is rare.
+// Runs each time an action script checks for challengers; reads four values at most.
 int __fastcall jumpIfChallengersHook(uint8_t* state, void* unused, int argument) {
-    if (enabled != toggleOn || !isMessengerCheck(state)) return originalJumpIfChallengers(state, unused, argument);
-    logger.write("INFO", "the pupil bringing news of challengers talks as usual; no pupil dies for it");
-    return 0;  // As with no challengers
+    if (enabled == toggleOn && isMessengerCheck(state)) return 0;  // As with no challengers
+    return originalJumpIfChallengers(state, unused, argument);
 }
 
 bool install(const wots4::ModContext& context) {

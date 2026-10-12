@@ -86,10 +86,7 @@ int main(int argc, char** argv) {
     check(runCommand(messengerCheck) == gameCodeResult, "off: the messenger's check runs the game's code");
 
     changeOption(item, 1);
-    check(runCommand(messengerCheck) == 0, "on: Deshi function 3, instruction 1 sees no challengers");
-    check(loggedText("[INFO] Pupils Survive Challengers: the pupil bringing news of challengers talks as usual"),
-        "on: the changed talk is logged");
-    ScriptState fightLoop(1, 302, 0), otherFunction(5, 1, 0), nested(3, 1, 1);
+    check(runCommand(messengerCheck) == 0, "on: Deshi function 3, instruction 1 sees no challengers");    ScriptState fightLoop(1, 302, 0), otherFunction(5, 1, 0), nested(3, 1, 1);
     check(runCommand(fightLoop) == gameCodeResult && runCommand(otherFunction) == gameCodeResult &&
               runCommand(nested) == gameCodeResult,
         "on: every other check for challengers (the fight at the dojo, other functions) runs the game's code");
