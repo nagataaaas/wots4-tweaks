@@ -121,6 +121,74 @@ inline bool claimed(uintptr_t preferred, uint32_t length) {
         if (claim.address == va(preferred) && claim.length == length) return true;
     return false;
 }
+inline bool claimedAt(uintptr_t preferred) {
+    for (const Claim& claim : claims)
+        if (claim.address == va(preferred)) return true;
+    return false;
+}
 inline bool loggedText(const char* text) { return logged.find(text) != std::string::npos; }
+
+// The options of every installed tweak share one page, and each ModInitialize adds a new one;
+// the tests look up their own item on the latest page by its English label.
+constexpr uint32_t noItem = ~0u;
+inline uint32_t optionIndex(const wchar_t* englishLabel) {
+    if (pages.empty()) return noItem;
+    const std::vector<wots4::OptionItem>& items = pages.back().items;
+    for (uint32_t index = 0; index < items.size(); ++index)
+        if (std::wstring(items[index].label.english) == englishLabel) return index;
+    return noItem;
+}
+inline const wots4::OptionItem& optionItem(uint32_t index) { return pages.back().items[index]; }
+inline uint32_t optionValue(uint32_t index) {
+    const wots4::OptionsPageCallbacks& callbacks = pages.back().callbacks;
+    std::vector<uint32_t> values(pages.back().items.size());
+    callbacks.read(callbacks.context, values.data(), static_cast<uint32_t>(values.size()));
+    return values[index];
+}
+inline void changeOption(uint32_t index, uint32_t value) {
+    const wots4::OptionsPageCallbacks& callbacks = pages.back().callbacks;
+    callbacks.changed(callbacks.context, index, value);
+}
+
+// A folder under %TEMP% for the Mod's config.ini, so the tests write nothing elsewhere.
+inline std::wstring testDirectory;
+inline bool createTestDirectory(const wchar_t* testName) {
+    wchar_t temporary[MAX_PATH];
+    if (!GetTempPathW(MAX_PATH, temporary)) return false;
+    testDirectory = std::wstring(temporary) + testName + L"_" + std::to_wstring(GetCurrentProcessId()) + L"\\";
+    return CreateDirectoryW(testDirectory.c_str(), nullptr) || GetLastError() == ERROR_ALREADY_EXISTS;
+}
+inline std::wstring configPath() { return testDirectory + L"config.ini"; }
+inline void removeTestDirectory() {
+    DeleteFileW(configPath().c_str());
+    RemoveDirectoryW(testDirectory.c_str());
+}
+
+// Initializes mod.dll as the ModLoader would, on the mapped copy. Returns false if it is not a Mod.
+inline wots4::Initialize modInitialize;
+inline HMODULE modModule;
+inline bool loadMod(const char* path) {
+    modModule = LoadLibraryA(path);
+    modInitialize = modModule ? reinterpret_cast<wots4::Initialize>(GetProcAddress(modModule, "Wots4ModInitialize"))
+                              : nullptr;
+    return modInitialize != nullptr;
+}
+inline bool initializeMod() {
+    const wots4::ModContext context{sizeof(context), wots4::modApiVersion, nullptr, modModule,
+        reinterpret_cast<HMODULE>(imageBase), testDirectory.c_str(), &host};
+    return modInitialize(&context) == TRUE;
+}
+
+inline uint8_t& codeByte(uintptr_t preferred) { return *reinterpret_cast<uint8_t*>(va(preferred)); }
+constexpr uint8_t jumpOpcode = 0xe9;  // What MinHook writes over a hooked instruction
+constexpr uint8_t returnOpcode = 0xc3;
+
+inline int finish(const char* testName) {
+    removeTestDirectory();
+    std::printf("%s: %d checks passed, %d failed. Mapped exe copy in this process only, config.ini only under "
+                "%%TEMP%%; no game installation, saves, or game process were written.\n",
+        testName, passed, failed);
+    return failed ? 1 : 0;
+}
 
 }  // namespace mapped_exe

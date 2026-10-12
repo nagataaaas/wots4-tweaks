@@ -8,11 +8,12 @@
 //   const tweaks::Tweak exampleTweak{L"example", options, 1, installExample};
 #include "tweak_list.h"
 #include "laura_yobai/laura_yobai.h"
+#include "loot_drop/loot_drop.h"
 
 namespace tweaks {
 
 std::vector<const Tweak*> registeredTweaks() {
-    return {&lauraYobaiTweak};
+    return {&lauraYobaiTweak, &lootDropTweak};
 }
 
 }  // namespace tweaks

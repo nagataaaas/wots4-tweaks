@@ -20,7 +20,6 @@ constexpr uintptr_t gameStateGlobal = 0x9e967c;
 constexpr uintptr_t yobaiManagerGlobal = 0x9ecbb4;
 constexpr uintptr_t definitionRootGlobal = 0x9e9640;
 constexpr uintptr_t promiseByCommandSpecialNumber = 0x69aa75;  // The 0x13 of cmp word [eax+6],0x13
-constexpr uint8_t returnOpcode = 0xc3;
 
 template <typename T>
 void setGlobal(uintptr_t global, T value) {
@@ -66,22 +65,6 @@ Registers startNightVisit() {
     return {ebxAfter, esiAfter, ediAfter};
 }
 
-std::wstring testDirectory;
-
-bool createTestDirectory() {
-    wchar_t temporary[MAX_PATH];
-    if (!GetTempPathW(MAX_PATH, temporary)) return false;
-    testDirectory = std::wstring(temporary) + L"wots4_laura_yobai_" + std::to_wstring(GetCurrentProcessId()) + L"\\";
-    return CreateDirectoryW(testDirectory.c_str(), nullptr) || GetLastError() == ERROR_ALREADY_EXISTS;
-}
-
-std::wstring configPath() { return testDirectory + L"config.ini"; }
-
-void removeTestDirectory() {
-    DeleteFileW(configPath().c_str());
-    RemoveDirectoryW(testDirectory.c_str());
-}
-
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -91,7 +74,7 @@ int main(int argc, char** argv) {
         std::printf("Could not map the exe copy %s; no test was run.\n", argv[1]);
         return 3;
     }
-    if (!createTestDirectory()) {
+    if (!createTestDirectory(L"wots4_laura_yobai")) {
         std::printf("Could not create the test folder under %%TEMP%%; no test was run.\n");
         return 3;
     }
@@ -108,49 +91,43 @@ int main(int argc, char** argv) {
               findWithGameCode(objects.tableHolder, definitionCount) == nullptr,
         "the game's lookup (0x43c250) finds the same definitions as the tweak");
 
-    HMODULE mod = LoadLibraryA(argv[2]);
-    auto initialize = mod ? reinterpret_cast<wots4::Initialize>(GetProcAddress(mod, "Wots4ModInitialize")) : nullptr;
-    check(initialize != nullptr, "mod.dll exports Wots4ModInitialize");
-    if (!initialize) return 1;
-    const wots4::ModContext context{sizeof(context), wots4::modApiVersion, nullptr, mod,
-        reinterpret_cast<HMODULE>(imageBase), testDirectory.c_str(), &host};
+    check(loadMod(argv[2]), "mod.dll exports Wots4ModInitialize");
+    if (!modInitialize) return 1;
 
-    // A different game: the tweak is skipped and nothing is hooked.
+    // A different game: the tweak is skipped and nothing is hooked. The other tweaks install
+    // here, and fail to hook again on the next initialization; only this tweak is checked.
     auto* specialNumber = reinterpret_cast<uint8_t*>(va(promiseByCommandSpecialNumber));
     *specialNumber = 0x14;
-    check(initialize(&context) == TRUE, "with changed game code the Mod still initializes");
+    check(initializeMod(), "with changed game code the Mod still initializes");
     check(loggedText("Laura night visit partner: the game code at 0x69f280 is not the known version") &&
               loggedText("Tweak laura_yobai could not be installed"),
         "the skipped tweak is logged");
-    check(claims.empty() && pages.empty() && *reinterpret_cast<uint8_t*>(va(createPartners)) == 0xa1,
+    check(!claimedAt(createPartners) && optionIndex(L"Laura's Night Crawling") == noItem &&
+              codeByte(createPartners) == 0xa1,
         "nothing is claimed, hooked or shown");
     *specialNumber = 0x13;
 
-    check(initialize(&context) == TRUE, "the Mod initializes on the known game code");
-    check(claimed(createPartners, 5) && claims.size() == 1, "0x69f280 is claimed (5 bytes)");
-    check(*reinterpret_cast<uint8_t*>(va(createPartners)) == 0xe9, "the hook is written at 0x69f280");
-    check(pages.size() == 1 && pages[0].items.size() == 1 && pages[0].items[0].kind == wots4::optionChoice &&
-              pages[0].items[0].choiceCount == 3 &&
-              std::wstring(pages[0].items[0].label.japanese) == L"ローラの夜這い" &&
-              std::wstring(pages[0].items[0].label.english) == L"Laura's Night Crawling" &&
-              std::wstring(pages[0].items[0].choices[0].english) == L"Don't Fix" &&
-              std::wstring(pages[0].items[0].choices[1].japanese) == L"偽物" &&
-              std::wstring(pages[0].items[0].choices[2].english) == L"Real",
+    check(initializeMod(), "the Mod initializes on the known game code");
+    check(claimed(createPartners, 5), "0x69f280 is claimed (5 bytes)");
+    check(codeByte(createPartners) == jumpOpcode, "the hook is written at 0x69f280");
+    const uint32_t item = optionIndex(L"Laura's Night Crawling");
+    check(item != noItem && optionItem(item).kind == wots4::optionChoice && optionItem(item).choiceCount == 3 &&
+              std::wstring(optionItem(item).label.japanese) == L"ローラの夜這い" &&
+              std::wstring(optionItem(item).choices[0].english) == L"Don't Fix" &&
+              std::wstring(optionItem(item).choices[1].japanese) == L"偽物" &&
+              std::wstring(optionItem(item).choices[2].english) == L"Real",
         "one option with the choices not fixed / fake / real is passed in both languages");
-    if (pages.size() != 1) return 1;
-    const wots4::OptionsPageCallbacks& option = pages[0].callbacks;
-    uint32_t shownValue = 99;
-    option.read(option.context, &shownValue, 1);
-    check(shownValue == partnerAsTheGameDecides, "without config.ini the option is not fixed");
+    if (item == noItem) return 1;
+    check(optionValue(item) == partnerAsTheGameDecides, "without config.ini the option is not fixed");
 
-    *reinterpret_cast<uint8_t*>(va(afterMovedInstruction)) = returnOpcode;
+    codeByte(afterMovedInstruction) = returnOpcode;
 
     objects.promise(otherDefinition);
     objects.mark() = markSet;
     startNightVisit();
     check(objects.mark() == markSet, "not fixed: a stale mark is left as the game has it");
 
-    option.changed(option.context, 0, partnerFake);
+    changeOption(item, partnerFake);
     objects.promise(lauraDefinition);
     objects.mark() = markUnset;
     const Registers after = startNightVisit();
@@ -164,7 +141,7 @@ int main(int argc, char** argv) {
     startNightVisit();
     check(objects.mark() == markUnset, "fake: another partner's promise clears a stale mark");
 
-    option.changed(option.context, 0, partnerReal);
+    changeOption(item, partnerReal);
     objects.promise(lauraDefinition);
     objects.mark() = markSet;
     startNightVisit();
@@ -185,9 +162,5 @@ int main(int argc, char** argv) {
     check(GetPrivateProfileIntW(L"laura_yobai", L"partner", 99, configPath().c_str()) == partnerReal,
         "the options save writes [laura_yobai] partner=2");
 
-    removeTestDirectory();
-    std::printf("%d checks passed, %d failed. Mapped exe copy in this process only, config.ini only under "
-                "%%TEMP%%; no game installation, saves, or game process were written.\n",
-        passed, failed);
-    return failed ? 1 : 0;
+    return finish("laura_yobai_native_probe");
 }

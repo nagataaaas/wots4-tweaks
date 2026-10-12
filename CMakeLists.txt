@@ -21,7 +21,9 @@ set(TWEAKS_CORE_SOURCES
 # Each tweak adds its sources in src/<tweak name>/ here
 set(TWEAKS_TWEAK_SOURCES
     src/tweak_list.cpp
-    src/laura_yobai/laura_yobai.cpp)
+    src/game_code.cpp
+    src/laura_yobai/laura_yobai.cpp
+    src/loot_drop/loot_drop.cpp)
 
 # Use the Mod's folder name in the game folder (mods/<name>/) as <name>
 wots4_add_mod(tweaks SOURCES ${TWEAKS_CORE_SOURCES} ${TWEAKS_TWEAK_SOURCES} DEF src/mod.def
@@ -34,12 +36,16 @@ if(WOTS4_BUILD_TESTS)
         SOURCES ${TWEAKS_CORE_SOURCES} tests/options_menu_tests.cpp tests/test_tweak_list.cpp)
     # Checks, with synthetic definitions, how the Laura mark is set for each setting
     wots4_add_probe(laura_yobai_probe SOURCES tests/laura_yobai_probe.cpp)
-    # Loads mod.dll into a copy of the exe and starts night visits with synthetic game objects
-    # (the game is not started)
+    # Each native probe loads mod.dll into a copy of the exe mapped in its own process and runs
+    # the tweak's hooked code with synthetic game objects (the game is not started)
     set(WOTS4_UNPACKED_EXE "${WOTS4_ROOT}/research/bin/WayOfTheSamurai4.unpacked.exe" CACHE FILEPATH "Decrypted exe")
     file(TO_NATIVE_PATH "${WOTS4_UNPACKED_EXE}" unpacked_native)
-    wots4_add_probe(laura_yobai_native_probe SOURCES tests/laura_yobai_native_probe.cpp
-        LINK_OPTIONS /BASE:0x10000000 /DYNAMICBASE
-        ARGS ${unpacked_native} $<TARGET_FILE:mod_tweaks> NEEDS_EXE)
-    add_dependencies(laura_yobai_native_probe mod_tweaks)
+    function(tweaks_add_native_probe name)
+        wots4_add_probe(${name} SOURCES tests/${name}.cpp
+            LINK_OPTIONS /BASE:0x10000000 /DYNAMICBASE
+            ARGS ${unpacked_native} $<TARGET_FILE:mod_tweaks> NEEDS_EXE)
+        add_dependencies(${name} mod_tweaks)
+    endfunction()
+    tweaks_add_native_probe(laura_yobai_native_probe)
+    tweaks_add_native_probe(loot_drop_native_probe)
 endif()
