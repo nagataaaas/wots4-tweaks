@@ -16,12 +16,13 @@
 #include "recruit_success/recruit_success.h"
 #include "pupil_survival/pupil_survival.h"
 #include "pupil_hidden/pupil_hidden.h"
+#include "dojo_raid_defeat/dojo_raid_defeat.h"
 
 namespace tweaks {
 
 std::vector<const Tweak*> registeredTweaks() {
     return {&lauraYobaiTweak, &lootDropTweak, &customStyleLimitTweak, &instantJobTweak, &persuadeSuccessTweak,
-        &smithBestRollTweak, &recruitSuccessTweak, &pupilSurvivalTweak, &pupilHiddenTweak};
+        &smithBestRollTweak, &recruitSuccessTweak, &pupilSurvivalTweak, &pupilHiddenTweak, &dojoRaidDefeatTweak};
 }
 
 }  // namespace tweaks

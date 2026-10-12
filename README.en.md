@@ -23,6 +23,10 @@ A collection of small "nice to have" adjustments (tweaks). Each tweak can be swi
 - **Guaranteed Pupils**: asking someone to become your pupil always succeeds. Without a dojo, with the dojo closed, or with a full dojo (20 pupils), you are still turned down.
 - **Pupils Survive Challengers**: dojo challengers no longer cost you pupils. Talking to the pupil who brings the news is an ordinary conversation, and no pupil dies or loses the dojo. Pupils who appear while challengers are in do not fall in the fight at the dojo, however hard they are hit. Pupils can still die in other ways, such as when you cut them down in town.
 - **Pupils Stay in the Dojo**: your pupils no longer appear in town and stay in the dojo. When challengers come, no pupil comes into town to tell you. The number of pupils and the dojo's reputation are not changed.
+- **Repelling Challengers**: choose whether the sensei and your pupils repel dojo challengers while they are in (decided each time you move to another area).
+  - Default: as in the game.
+  - Always: the sensei or your pupils always repel them.
+  - Never: neither the sensei nor your pupils repel them.
 
   The options are shown in the game's language (Japanese or English).
 
