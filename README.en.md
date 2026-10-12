@@ -18,6 +18,7 @@ A collection of small "nice to have" adjustments (tweaks). Each tweak can be swi
 - **Instant Missions**: a mission succeeds as soon as you accept it and the conversation ends. The reward, the town's order and your records are the same as for a normal success (bonus rewards, such as for the number of enemies defeated, are not paid). Night missions accepted during the day succeed right away too.
   - The mission series of Nodobotoke, Kobato, the Thief, Gramps and Shirube, battle missions such as Underbelly Recon and Government Recon, and the last mission, The Amihama Eight, are included. Clients give their next request as after a normal success.
   - You do not see the fights and conversations with the targets. Accepting Grandpa's Memories (Part 1) or A Lid On Something Stinky (Part 1) also accepts Part 2, and both parts succeed.
+- **Guaranteed Wooing**: when you woo someone, you always make a nighttime promise, whatever you answer. Wooing a named character (Akagi, Kogure, Kotobuki, Moro, Kinugawa, J.J. or Dojima) with Nightly Pleasure Martial Arts also makes the promise on the first try, at any level of the style. People who cannot be wooed, and anyone when you already have a partner for tonight, still turn you down.
 
   The options are shown in the game's language (Japanese or English).
 
