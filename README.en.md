@@ -15,6 +15,9 @@ A collection of small "nice to have" adjustments (tweaks). Each tweak can be swi
   - Real: the night crawling is with Laura herself.
 - **Guaranteed Loot**: searching or kicking a body gives an item on the first try, when the body has something to give. Which item you get keeps the game's odds. Items that townsfolk drop on their own when they die are not changed.
 - **Unlimited My Style**: when making My Style, you can add as many moves as you like even without enough Ability Points. The screen still shows "total / Ability Points", so the total may look larger than your points. Your Ability Points are not spent.
+- **Instant Missions**: a mission succeeds as soon as you accept it and the conversation ends. The reward, the town's order and your records are the same as for a normal success (bonus rewards, such as for the number of enemies defeated, are not paid). Night missions accepted during the day succeed right away too.
+  - Story missions (the officer, the gangsters, the thief and the homeless man), the Shirube missions, the gambling den, the magistrate's office and the last mission are included. Clients give their next request as after a normal success.
+  - You do not see the fights and conversations with the targets. For the two-part missions of the homeless man, accepting the first part also accepts the second, and both succeed.
 
   The options are shown in the game's language (Japanese or English).
 

@@ -24,7 +24,8 @@ set(TWEAKS_TWEAK_SOURCES
     src/game_code.cpp
     src/laura_yobai/laura_yobai.cpp
     src/loot_drop/loot_drop.cpp
-    src/custom_style_limit/custom_style_limit.cpp)
+    src/custom_style_limit/custom_style_limit.cpp
+    src/instant_job/instant_job.cpp)
 
 # Use the Mod's folder name in the game folder (mods/<name>/) as <name>
 wots4_add_mod(tweaks SOURCES ${TWEAKS_CORE_SOURCES} ${TWEAKS_TWEAK_SOURCES} DEF src/mod.def
@@ -50,4 +51,5 @@ if(WOTS4_BUILD_TESTS)
     tweaks_add_native_probe(laura_yobai_native_probe)
     tweaks_add_native_probe(loot_drop_native_probe)
     tweaks_add_native_probe(custom_style_limit_native_probe)
+    tweaks_add_native_probe(instant_job_native_probe)
 endif()
