@@ -3,6 +3,7 @@
 #pragma once
 #include <windows.h>
 #include <cstdint>
+#include <initializer_list>
 #include <wots4/mod_api.h>
 #include "game_image.h"
 
@@ -32,5 +33,34 @@ CodeChangeError hookGameCode(const wots4::ModContext& context, const GameImage& 
     uint32_t claimLength, void* detour, void** original);
 // Removes a hook made by hookGameCode, to undo a tweak whose later step failed.
 void unhookGameCode(const GameImage& game, uintptr_t preferred);
+
+// A few bytes of the game's code that a tweak switches between the game's own and its own.
+// Options change while the game runs, so a patch is written and written back from applied.
+class CodePatch {
+public:
+    static constexpr uint32_t maxLength = 16;
+
+    CodePatch(uintptr_t preferred, std::initializer_list<uint8_t> patchedBytes);
+    uintptr_t preferredAddress() const { return preferred; }
+    // For bytes known only at run time, such as a relocated address. Call before claim.
+    void setPatchedBytes(const uint8_t* bytes);
+    // Claims the bytes and keeps the game's own to write back. Check them before (codeMatches).
+    CodeChangeError claim(const wots4::ModContext& context, const GameImage& game);
+    // Writes the tweak's bytes or the game's own. False if the code could not be made writable.
+    bool write(bool patched) const;
+
+private:
+    uintptr_t preferred;
+    uint32_t length;
+    uint8_t* code = nullptr;  // Relocated, set by claim
+    uint8_t original[maxLength] = {};
+    uint8_t patched[maxLength] = {};
+};
+
+// Claims every patch; on failure logs it and returns false (claims made stay, as above).
+bool claimPatches(const wots4::ModContext& context, const GameImage& game, CodePatch* patches, size_t count,
+    const TweakLog& log);
+// Writes every patch, or writes the game's bytes back. Logs a failure once per call.
+void writePatches(const CodePatch* patches, size_t count, bool patched, const TweakLog& log);
 
 }  // namespace tweaks

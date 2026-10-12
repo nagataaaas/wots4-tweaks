@@ -14,6 +14,7 @@ A collection of small "nice to have" adjustments (tweaks). Each tweak can be swi
   - Fake: when you lift the futon, someone disguised as Laura takes her place.
   - Real: the night crawling is with Laura herself.
 - **Guaranteed Loot**: searching or kicking a body gives an item on the first try, when the body has something to give. Which item you get keeps the game's odds. Items that townsfolk drop on their own when they die are not changed.
+- **Unlimited My Style**: when making My Style, you can add as many moves as you like even without enough Ability Points. The screen still shows "total / Ability Points", so the total may look larger than your points. Your Ability Points are not spent.
 
   The options are shown in the game's language (Japanese or English).
 

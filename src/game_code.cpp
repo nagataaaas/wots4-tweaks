@@ -1,5 +1,6 @@
 #include "game_code.h"
 #include <cstdio>
+#include <cstring>
 #include "minhook_setup.h"
 
 namespace tweaks {
@@ -40,6 +41,55 @@ CodeChangeError hookGameCode(const wots4::ModContext& context, const GameImage& 
 
 void unhookGameCode(const GameImage& game, uintptr_t preferred) {
     MH_RemoveHook(reinterpret_cast<void*>(game.address(preferred)));
+}
+
+CodePatch::CodePatch(uintptr_t preferred, std::initializer_list<uint8_t> patchedBytes)
+    : preferred(preferred), length(static_cast<uint32_t>(patchedBytes.size())) {
+    std::memcpy(patched, patchedBytes.begin(), length < maxLength ? length : maxLength);
+}
+
+void CodePatch::setPatchedBytes(const uint8_t* bytes) {
+    std::memcpy(patched, bytes, length);
+}
+
+CodeChangeError CodePatch::claim(const wots4::ModContext& context, const GameImage& game) {
+    if (length == 0 || length > maxLength) return "the patch has no bytes or too many";
+    if (!context.host->claim(context.module, game.address(preferred), length)) return "the code is used by another Mod";
+    code = reinterpret_cast<uint8_t*>(game.address(preferred));
+    std::memcpy(original, code, length);
+    return nullptr;
+}
+
+bool CodePatch::write(bool usePatched) const {
+    if (!code) return false;
+    DWORD oldProtection;
+    if (!VirtualProtect(code, length, PAGE_EXECUTE_READWRITE, &oldProtection)) return false;
+    std::memcpy(code, usePatched ? patched : original, length);
+    VirtualProtect(code, length, oldProtection, &oldProtection);
+    FlushInstructionCache(GetCurrentProcess(), code, length);
+    return true;
+}
+
+bool claimPatches(const wots4::ModContext& context, const GameImage& game, CodePatch* patches, size_t count,
+    const TweakLog& log) {
+    for (size_t index = 0; index < count; ++index) {
+        if (CodeChangeError error = patches[index].claim(context, game)) {
+            log.installFailed(error, patches[index].preferredAddress());
+            return false;
+        }
+    }
+    return true;
+}
+
+void writePatches(const CodePatch* patches, size_t count, bool patched, const TweakLog& log) {
+    for (size_t index = 0; index < count; ++index) {
+        if (patches[index].write(patched)) continue;
+        char line[160];
+        sprintf_s(line, "could not make the code at 0x%x writable; the option has no effect until the game restarts",
+            static_cast<unsigned>(patches[index].preferredAddress()));
+        log.write("ERROR", line);
+        return;
+    }
 }
 
 }  // namespace tweaks

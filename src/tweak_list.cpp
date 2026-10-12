@@ -9,11 +9,12 @@
 #include "tweak_list.h"
 #include "laura_yobai/laura_yobai.h"
 #include "loot_drop/loot_drop.h"
+#include "custom_style_limit/custom_style_limit.h"
 
 namespace tweaks {
 
 std::vector<const Tweak*> registeredTweaks() {
-    return {&lauraYobaiTweak, &lootDropTweak};
+    return {&lauraYobaiTweak, &lootDropTweak, &customStyleLimitTweak};
 }
 
 }  // namespace tweaks
