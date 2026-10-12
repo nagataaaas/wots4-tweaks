@@ -57,6 +57,19 @@ private:
     uint8_t patched[maxLength] = {};
 };
 
+// rand() of MSVCR100, which the game calls through its import table entry [0x9052f8].
+using RandFunction = int(__cdecl*)();
+constexpr uintptr_t randImport = 0x9052f8;
+constexpr uint32_t randReadLength = 6;  // ff 15 / 8b 1d etc. and the address of the entry
+
+// The game's rand, read from its import table entry.
+RandFunction gameRand(const GameImage& game);
+// True if the instruction at preferred is opcode (2 bytes) [0x9052f8], such as call [rand].
+bool readsRand(const GameImage& game, uintptr_t preferred, uint8_t opcode, uint8_t modRm);
+// Makes a patch of such an instruction read *slot instead of the import table entry, so that
+// only this call of rand goes to the tweak's function.
+void readRandFrom(CodePatch& patch, const GameImage& game, const RandFunction* slot);
+
 // Claims every patch; on failure logs it and returns false (claims made stay, as above).
 bool claimPatches(const wots4::ModContext& context, const GameImage& game, CodePatch* patches, size_t count,
     const TweakLog& log);

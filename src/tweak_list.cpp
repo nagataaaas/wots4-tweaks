@@ -12,11 +12,13 @@
 #include "custom_style_limit/custom_style_limit.h"
 #include "instant_job/instant_job.h"
 #include "persuade_success/persuade_success.h"
+#include "smith_best_roll/smith_best_roll.h"
 
 namespace tweaks {
 
 std::vector<const Tweak*> registeredTweaks() {
-    return {&lauraYobaiTweak, &lootDropTweak, &customStyleLimitTweak, &instantJobTweak, &persuadeSuccessTweak};
+    return {&lauraYobaiTweak, &lootDropTweak, &customStyleLimitTweak, &instantJobTweak, &persuadeSuccessTweak,
+        &smithBestRollTweak};
 }
 
 }  // namespace tweaks

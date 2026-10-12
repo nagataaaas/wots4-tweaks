@@ -70,6 +70,23 @@ bool CodePatch::write(bool usePatched) const {
     return true;
 }
 
+RandFunction gameRand(const GameImage& game) {
+    return reinterpret_cast<RandFunction>(game.readUint32(randImport));
+}
+
+bool readsRand(const GameImage& game, uintptr_t preferred, uint8_t opcode, uint8_t modRm) {
+    const uint8_t instruction[] = {opcode, modRm};
+    return game.codeIs(preferred, instruction, sizeof(instruction)) && game.operandIs(preferred + 2, randImport);
+}
+
+void readRandFrom(CodePatch& patch, const GameImage& game, const RandFunction* slot) {
+    uint8_t bytes[randReadLength];
+    std::memcpy(bytes, reinterpret_cast<const void*>(game.address(patch.preferredAddress())), 2);
+    const auto slotAddress = reinterpret_cast<uint32_t>(slot);
+    std::memcpy(bytes + 2, &slotAddress, sizeof(slotAddress));
+    patch.setPatchedBytes(bytes);
+}
+
 bool claimPatches(const wots4::ModContext& context, const GameImage& game, CodePatch* patches, size_t count,
     const TweakLog& log) {
     for (size_t index = 0; index < count; ++index) {

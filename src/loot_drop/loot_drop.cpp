@@ -20,7 +20,6 @@ constexpr uint32_t divisorLength = 5;
 constexpr uintptr_t lootCall = 0x493354;  // Looting a body (0x493270)
 constexpr uintptr_t kickCall = 0x51cbaf;  // A kick landing on a body (0x51c620)
 constexpr uint32_t callLength = 5;
-constexpr uintptr_t randImport = 0x9052f8;
 
 uint32_t enabled = toggleOff;
 GameImage game;
