@@ -42,9 +42,9 @@ int main(int argc, char** argv) {
     if (!modInitialize) return 1;
     check(initializeMod(), "the Mod initializes on the known game code");
     check(claimed(registerScripts, 5), "the loading of the scripts is hooked once for the tweaks that change them");
-    const uint32_t item = optionIndex(L"Guaranteed Pupils");
+    const uint32_t item = optionIndex(L"Guaranteed Recruiting");
     check(item != noItem && optionItem(item).kind == wots4::optionToggle &&
-              std::wstring(optionItem(item).label.japanese) == L"弟子確定成功",
+              std::wstring(optionItem(item).label.japanese) == L"弟子勧誘確定成功",
         "an on / off option is passed in both languages");
     if (item == noItem) return 1;
     check(optionValue(item) == 0, "without config.ini the tweak is off");

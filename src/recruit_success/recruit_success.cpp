@@ -27,7 +27,7 @@ constexpr ScriptBranch branches[] = {
 };
 
 uint32_t enabled = toggleOff;
-TweakLog logger("Guaranteed Pupils");
+TweakLog logger("Guaranteed Recruiting");
 script_patch::BranchSet branchSet(branches, std::size(branches), &enabled, &logger);
 
 bool install(const wots4::ModContext& context) {
@@ -41,7 +41,7 @@ void applied(uint32_t value) {
 
 // 弟子 is "pupils" in the game's messages (「道場破りは弟子が撃退した！」).
 const Option options[] = {
-    toggle(L"enabled", {L"弟子確定成功", L"Guaranteed Pupils"}, &enabled, false, applied),
+    toggle(L"enabled", {L"弟子勧誘確定成功", L"Guaranteed Recruiting"}, &enabled, false, applied),
 };
 
 }  // namespace
