@@ -39,6 +39,10 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
   - Default: unchanged from the game.
   - Always: challengers come whenever they can. As in the game, they never come at night, when you are leaving the dojo, when you have no pupils, or when the dojo's reputation is at its lowest.
   - Never: challengers never come.
+- **Challenger Rep and ☆1 to ☆5 Challenger**: choose who the dojo challengers are (decided each time you enter the dojo). How often challengers come, and how often the sensei or your pupils repel them, stay the same.
+  - Challenger Rep: challengers of the chosen reputation (☆1 to ☆5) come, whatever your dojo's reputation. With Don't Fix, they follow your dojo's reputation.
+  - ☆1 to ☆5 Challenger: when challengers of that reputation come, the chosen ones come. With Don't Fix, the game picks among the challengers of that reputation.
+  - In the game, the Half-naked Revolutionary, Foreign Nurse and Masked Bikini Women of ☆5 Challenger come at ☆5 only under certain conditions. When you choose one of them, they come regardless.
 
 ## Installation
 
