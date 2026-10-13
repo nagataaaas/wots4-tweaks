@@ -7,6 +7,7 @@
 #include <cstring>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <string>
 #include <vector>
 #include <wots4/mod_api.h>
@@ -113,8 +114,15 @@ inline BOOL WINAPI hostOnOptionsSaved(HMODULE, wots4::GameEventCallback callback
     return TRUE;
 }
 
+// The game's UI texts a test sets; findGameText returns null for the others, as before they load.
+inline std::map<uint32_t, std::wstring> gameTexts;
+inline const wchar_t* WINAPI hostFindGameText(uint32_t number) {
+    const auto found = gameTexts.find(number);
+    return found == gameTexts.end() ? nullptr : found->second.c_str();
+}
+
 inline const wots4::HostApi host{sizeof(wots4::HostApi), wots4::modApiVersion, hostLog, hostClaim,
-    hostReleaseClaims, hostAddOptionsPage, hostOnFrame, hostOnOptionsSaved};
+    hostReleaseClaims, hostAddOptionsPage, hostOnFrame, hostOnOptionsSaved, hostFindGameText};
 
 inline bool claimed(uintptr_t preferred, uint32_t length) {
     for (const Claim& claim : claims)

@@ -15,6 +15,13 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
   - Real: Laura herself is waiting.
 - **Guaranteed Loot**: searching or kicking a body always gives an item on the first try, as long as the body has something to give. The odds of which item you get are unchanged. Items that townsfolk drop on their own when they die are not affected.
 - **Unlimited My Style**: when creating a My Style, you can add as many moves as you like, even without enough Ability Points. The "total / Ability Points" display is unchanged, so the total may appear to exceed your points. No Ability Points are spent.
+- **Mixed-Stance My Style**: when creating a My Style, a stance can also take moves of the other stances of the same weapon. The sword stances (Jo-dan, Chu-dan, Ge-dan, Waki, Iai, One-Handed and Shinobi) mix with each other, and so do the dual sword stances (Dual Arms and Shinobi Dual Arms).
+  - The move select screen gets a "Switch Stance" button. It opens a list of the stances and shows the moves of the one you pick. The moves chosen on each stance stay chosen when you switch.
+  - Combos link only moves of the same original stance.
+  - The Ability Points total counts the moves chosen on every stance.
+  - A first move's command and a defensive move's type can still be set only once, across stances too. First moves taken on another stance are dimmed, and choosing one tells you which stance has it, such as "(Jo-dan)".
+  - Auto-Select and Copy Stance choose moves of the slot's own stance only.
+  - Turning this option off again keeps the moves of the styles you made usable in battle.
 - **Instant Missions**: a mission succeeds as soon as you accept it and the conversation ends. You get the same rewards, town order and records as for a normal success, except for bonus rewards (such as those for the number of enemies defeated). Night missions accepted during the day also succeed right away.
   - This includes the mission chains of Nodobotoke, Kobato, the Thief, Gramps and Shirube, battle missions such as Underbelly Recon and Government Recon, and the final mission, The Amihama Eight. Clients offer their next request just as they would after a normal success.
   - The fights and conversations with the targets are skipped. Accepting Part 1 of Grandpa's Memories or A Lid On Something Stinky also accepts Part 2, and both parts succeed.

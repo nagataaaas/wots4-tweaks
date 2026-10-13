@@ -25,6 +25,12 @@ set(TWEAKS_TWEAK_SOURCES
     src/laura_yobai/laura_yobai.cpp
     src/loot_drop/loot_drop.cpp
     src/custom_style_limit/custom_style_limit.cpp
+    src/custom_style_stance/custom_style_stance.cpp
+    src/custom_style_stance/game_calls.cpp
+    src/custom_style_stance/mixed_style.cpp
+    src/custom_style_stance/stance_charts.cpp
+    src/custom_style_stance/stance_menu.cpp
+    src/custom_style_stance/stance_rules.cpp
     src/instant_job/instant_job.cpp
     src/script_patch/script_patch.cpp
     src/persuade_success/persuade_success.cpp
@@ -62,6 +68,7 @@ if(WOTS4_BUILD_TESTS)
     tweaks_add_native_probe(laura_yobai_native_probe)
     tweaks_add_native_probe(loot_drop_native_probe)
     tweaks_add_native_probe(custom_style_limit_native_probe)
+    tweaks_add_native_probe(custom_style_stance_native_probe)
     tweaks_add_native_probe(instant_job_native_probe)
     set(script_folder "${WOTS4_GAME_DIR}/Common/ActionScript")
     tweaks_add_native_probe(persuade_success_native_probe
