@@ -13,6 +13,7 @@
 #include "instant_job/instant_job.h"
 #include "persuade_success/persuade_success.h"
 #include "smith_best_roll/smith_best_roll.h"
+#include "refine_quality_limit/refine_quality_limit.h"
 #include "recruit_success/recruit_success.h"
 #include "pupil_survival/pupil_survival.h"
 #include "pupil_hidden/pupil_hidden.h"
@@ -23,7 +24,7 @@ namespace tweaks {
 
 std::vector<const Tweak*> registeredTweaks() {
     return {&lauraYobaiTweak, &lootDropTweak, &customStyleLimitTweak, &instantJobTweak, &persuadeSuccessTweak,
-        &smithBestRollTweak, &recruitSuccessTweak, &pupilSurvivalTweak, &pupilHiddenTweak, &dojoRaidDefeatTweak,
+        &smithBestRollTweak, &refineQualityLimitTweak, &recruitSuccessTweak, &pupilSurvivalTweak, &pupilHiddenTweak, &dojoRaidDefeatTweak,
         &dojoRaidAppearanceTweak};
 }
 
