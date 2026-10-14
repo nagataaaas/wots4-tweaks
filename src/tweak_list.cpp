@@ -15,6 +15,7 @@
 #include "persuade_success/persuade_success.h"
 #include "smith_best_roll/smith_best_roll.h"
 #include "refine_quality_limit/refine_quality_limit.h"
+#include "setup_anytime/setup_anytime.h"
 #include "recruit_success/recruit_success.h"
 #include "pupil_survival/pupil_survival.h"
 #include "pupil_hidden/pupil_hidden.h"
@@ -33,7 +34,7 @@ std::vector<TweakGroup> registeredTweakGroups() {
         {wots4::localizedGameText(12), {&smithBestRollTweak, &refineQualityLimitTweak}},
         {{L"道場", L"Dojo"}, {&recruitSuccessTweak, &pupilSurvivalTweak, &pupilHiddenTweak, &dojoRaidDefeatTweak,
             &dojoRaidAppearanceTweak, &dojoRaidLineupTweak}},
-        {wots4::localizedGameText(245), {&instantJobTweak, &lootDropTweak}},
+        {wots4::localizedGameText(245), {&instantJobTweak, &lootDropTweak, &setupAnytimeTweak}},
     };
 }
 

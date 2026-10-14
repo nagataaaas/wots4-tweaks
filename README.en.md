@@ -43,6 +43,7 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
   - Challenger Rep: challengers of the chosen reputation (☆1 to ☆5) come, whatever your dojo's reputation. With Don't Fix, they follow your dojo's reputation.
   - ☆1 to ☆5 Challenger: when challengers of that reputation come, the chosen ones come. With Don't Fix, the game picks among the challengers of that reputation.
   - In the game, the Half-naked Revolutionary, Foreign Nurse and Masked Bikini Women of ☆5 Challenger come at ☆5 only under certain conditions. When you choose one of them, they come regardless.
+- **Setup Anytime**: choosing Load on the title screen brings up the difficulty selection and the character creation even for a save from the middle of a playthrough. In the game, these screens come up only for a save made after a playthrough ends. Once you save the character, you carry on from where the save left off. Quitting the character creation takes you back to the title screen.
 
 ## Installation
 
