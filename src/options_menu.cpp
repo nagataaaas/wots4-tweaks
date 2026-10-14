@@ -1,4 +1,5 @@
 #include "options_menu.h"
+#include <algorithm>
 #include <cstdarg>
 #include <cstdio>
 #include <cwchar>
@@ -51,12 +52,21 @@ bool OptionsMenu::isWellFormed(const Tweak& tweak) const {
     return true;
 }
 
+void OptionsMenu::beginGroup(const Text& header) {
+    pendingHeader = header;
+}
+
 void OptionsMenu::add(const Tweak& tweak) {
     for (uint32_t index = 0; index < tweak.optionCount; ++index) {
         const Option& option = tweak.options[index];
         *option.value = readSavedValue(tweak, option);
         if (option.applied) option.applied(*option.value);
-        entries.push_back({&tweak, &option});
+        if (pendingHeader.japanese) {
+            entries.push_back({nullptr, nullptr, pendingHeader});
+            pendingHeader = {};
+        }
+        entries.push_back({&tweak, &option, {}});
+        ++addedOptionCount;
     }
 }
 
@@ -74,10 +84,28 @@ uint32_t OptionsMenu::readSavedValue(const Tweak& tweak, const Option& option) c
 }
 
 bool OptionsMenu::addPage(const wots4::ModContext& context) {
-    if (pageAdded || entries.empty()) return false;
+    if (pageAdded || addedOptionCount == 0) return false;
+    pageAdded = tryAddPage(context);
+    if (!pageAdded && removeHeaders()) {
+        logFormatted("[WARN] The ModLoader did not accept the options page with headers; "
+                     "adding it without them (a ModLoader without headers refuses them).");
+        pageAdded = tryAddPage(context);
+    }
+    if (!pageAdded)
+        logFormatted("[ERROR] The ModLoader did not accept the options page (%u options); "
+                     "those options keep their config.ini values but cannot be changed in the game.",
+            static_cast<uint32_t>(addedOptionCount));
+    return pageAdded;
+}
+
+bool OptionsMenu::tryAddPage(const wots4::ModContext& context) {
     std::vector<wots4::OptionItem> items;
     items.reserve(entries.size());
     for (const Entry& entry : entries) {
+        if (!entry.option) {
+            items.push_back({wots4::optionHeader, entry.header, nullptr, 0, 0});
+            continue;
+        }
         const Option& option = *entry.option;
         items.push_back({option.kind, option.label, option.choices, option.choiceCount, option.defaultValue});
     }
@@ -85,23 +113,29 @@ bool OptionsMenu::addPage(const wots4::ModContext& context) {
     const wots4::LocalizedText title{pageTitle, pageTitle};
     const wots4::OptionsPageCallbacks callbacks{this, readPage, changeOption};
     const auto itemCount = static_cast<uint32_t>(items.size());
-    pageAdded = context.host->addOptionsPage(context.module, &title, items.data(), itemCount, &callbacks) != FALSE;
-    if (!pageAdded)
-        logFormatted("[ERROR] The ModLoader did not accept the options page (%u options); "
-                     "those options keep their config.ini values but cannot be changed in the game.",
-            itemCount);
-    return pageAdded;
+    return context.host->addOptionsPage(context.module, &title, items.data(), itemCount, &callbacks) != FALSE;
+}
+
+bool OptionsMenu::removeHeaders() {
+    const auto isHeader = [](const Entry& entry) { return !entry.option; };
+    const auto firstHeader = std::remove_if(entries.begin(), entries.end(), isHeader);
+    if (firstHeader == entries.end()) return false;
+    entries.erase(firstHeader, entries.end());
+    return true;
 }
 
 void WINAPI OptionsMenu::readPage(void* context, uint32_t* values, uint32_t count) {
     const OptionsMenu& menu = *static_cast<const OptionsMenu*>(context);
     if (count != menu.entries.size()) return;
-    for (uint32_t item = 0; item < count; ++item) values[item] = *menu.entries[item].option->value;
+    for (uint32_t item = 0; item < count; ++item) {
+        const Option* option = menu.entries[item].option;
+        values[item] = option ? *option->value : 0;  // The ModLoader does not use a header's value
+    }
 }
 
 void WINAPI OptionsMenu::changeOption(void* context, uint32_t item, uint32_t value) {
     OptionsMenu& menu = *static_cast<OptionsMenu*>(context);
-    if (item >= menu.entries.size()) return;
+    if (item >= menu.entries.size() || !menu.entries[item].option) return;
     const Option& option = *menu.entries[item].option;
     if (value >= option.choiceCount) return;
 
@@ -118,6 +152,7 @@ void OptionsMenu::saveIfChanged() {
 
 bool OptionsMenu::writeValues() {
     for (const Entry& entry : entries) {
+        if (!entry.option) continue;
         wchar_t text[maxValueChars + 1];
         swprintf_s(text, L"%u", *entry.option->value);
         if (WritePrivateProfileStringW(entry.tweak->name, entry.option->key, text, configPath.c_str())) continue;

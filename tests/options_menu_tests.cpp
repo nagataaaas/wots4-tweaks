@@ -30,6 +30,7 @@ std::vector<std::string> loggedLines;
 wots4::GameEventCallback optionsSavedCallback;
 void* optionsSavedContext;
 bool refusePages;
+bool refuseHeaders;  // Like a ModLoader that does not know headers
 
 void WINAPI fakeLog(HMODULE, const char* message) {
     loggedLines.emplace_back(message);
@@ -39,6 +40,8 @@ void WINAPI fakeReleaseClaims(HMODULE) {}
 BOOL WINAPI fakeAddOptionsPage(HMODULE, const wots4::LocalizedText* title, const wots4::OptionItem* items,
     uint32_t count, const wots4::OptionsPageCallbacks* callbacks) {
     if (refusePages) return FALSE;
+    for (uint32_t index = 0; index < count && refuseHeaders; ++index)
+        if (items[index].kind == wots4::optionHeader) return FALSE;
     recordedPages.push_back({title->english, std::vector<wots4::OptionItem>(items, items + count), *callbacks});
     return TRUE;
 }
@@ -113,37 +116,45 @@ void testModInitialize() {
         "the malformed definition is logged");
     check(anyLogContains("Tweak failing could not be installed"), "a failed install is logged");
 
+    // Rows: header A, alpha 1-5, header B, beta 1-4. The failing tweak's group has no header.
     check(recordedPages.size() == 1, "9 options make 1 page (the ModLoader scrolls it)");
     if (recordedPages.size() != 1) return;
     const RecordedPage& page = recordedPages[0];
-    check(page.items.size() == 9 && page.title == L"Tweaks", "the page holds all 9 options under the Mod's name");
-    check(page.items[0].kind == wots4::optionToggle && page.items[0].choiceCount == 2, "a toggle has 2 choices");
-    check(page.items[0].defaultValue == tweaks::toggleOn && page.items[2].defaultValue == tweaks::toggleOff,
+    check(page.items.size() == 11 && page.title == L"Tweaks",
+        "the page holds all 9 options and 2 headers under the Mod's name");
+    check(page.items[0].kind == wots4::optionHeader && std::wstring(page.items[0].label.english) == L"Group A" &&
+              !page.items[0].choices && page.items[0].choiceCount == 0 && page.items[0].defaultValue == 0,
+        "a group starts with a header without choices");
+    check(page.items[1].kind == wots4::optionToggle && page.items[1].choiceCount == 2, "a toggle has 2 choices");
+    check(page.items[1].defaultValue == tweaks::toggleOn && page.items[3].defaultValue == tweaks::toggleOff,
         "each option's default is passed for the reset button");
-    check(page.items[5].kind == wots4::optionChoice && page.items[5].choiceCount == 3,
-        "the failing tweak is left out, so beta follows alpha");
-    check(std::wstring(page.items[8].label.english) == L"Beta 4", "the last option is the 9th item");
+    check(page.items[6].kind == wots4::optionHeader && std::wstring(page.items[6].label.english) == L"Group B" &&
+              page.items[7].kind == wots4::optionChoice && page.items[7].choiceCount == 3,
+        "the failing tweak and its group's header are left out, so group B follows alpha");
+    check(std::wstring(page.items[10].label.english) == L"Beta 4", "the last option is the 11th item");
     check(anyLogContains("2 of 4 tweaks installed, 9 options, options page added"), "the summary is logged");
 
-    uint32_t values[9] = {};
-    page.callbacks.read(page.callbacks.context, values, 9);
-    check(values[0] == 0 && values[1] == 1 && values[5] == 2 && values[6] == 1 && values[8] == betaValues[3],
-        "read reports the current values");
-    uint32_t untouched[9] = {7, 7, 7, 7, 7, 7, 7, 7, 7};
-    page.callbacks.read(page.callbacks.context, untouched, 8);
+    uint32_t values[11] = {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7};
+    page.callbacks.read(page.callbacks.context, values, 11);
+    check(values[0] == 0 && values[1] == 0 && values[2] == 1 && values[6] == 0 && values[7] == 2 && values[8] == 1 &&
+              values[10] == betaValues[3],
+        "read reports the current values, and 0 for the headers");
+    uint32_t untouched[11] = {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7};
+    page.callbacks.read(page.callbacks.context, untouched, 9);
     check(untouched[0] == 7, "read with another item count writes nothing");
 
     check(optionsSavedCallback != nullptr, "the options save is watched");
     if (!optionsSavedCallback) return;
     DeleteFileW(configPath.c_str());
+    page.callbacks.changed(page.callbacks.context, 6, 1);
     optionsSavedCallback(optionsSavedContext);
-    check(!configExists(), "config.ini is not written when nothing changed");
+    check(!configExists(), "config.ini is not written when nothing changed, and a header's change is ignored");
 
-    page.callbacks.changed(page.callbacks.context, 8, 0);
-    check(betaValues[3] == 0 && betaLastApplied == 0, "a change of the 9th item sets the value and calls applied");
-    page.callbacks.changed(page.callbacks.context, 8, 3);
+    page.callbacks.changed(page.callbacks.context, 10, 0);
+    check(betaValues[3] == 0 && betaLastApplied == 0, "a change of the 11th item sets the value and calls applied");
+    page.callbacks.changed(page.callbacks.context, 10, 3);
     check(betaValues[3] == 0, "a value outside the choices is ignored");
-    page.callbacks.changed(page.callbacks.context, 2, tweaks::toggleOn);
+    page.callbacks.changed(page.callbacks.context, 3, tweaks::toggleOn);
     optionsSavedCallback(optionsSavedContext);
     check(readSetting(L"beta", L"fourth") == 0 && readSetting(L"alpha", L"third") == 1,
         "the options save writes the changed values");
@@ -188,6 +199,23 @@ void testPageBoundaries() {
     check(!refused.addPage(context), "a refused page is reported");
     check(anyLogContains("did not accept the options page (8 options)"), "a refused page is logged");
     refusePages = false;
+
+    refuseHeaders = true;
+    recordedPages.clear();
+    tweaks::OptionsMenu withoutHeaders(configPath, logToFakeHost);
+    withoutHeaders.beginGroup(eightLabel);
+    withoutHeaders.add(exactlyEight);
+    check(withoutHeaders.addPage(context) && recordedPages.size() == 1 && recordedPages[0].items.size() == 8 &&
+              recordedPages[0].items[0].kind == wots4::optionToggle,
+        "a ModLoader that refuses headers gets the page without them");
+    check(anyLogContains("did not accept the options page with headers"), "the page without headers is logged");
+    if (!recordedPages.empty()) {
+        const wots4::OptionsPageCallbacks& callbacks = recordedPages[0].callbacks;
+        callbacks.changed(callbacks.context, 0, tweaks::toggleOn);
+        check(exactlyEightValues[0] == tweaks::toggleOn, "without headers, item 0 is the first option");
+        exactlyEightValues[0] = tweaks::toggleOff;
+    }
+    refuseHeaders = false;
 }
 
 void testMalformedDefinitions() {

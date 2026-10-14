@@ -56,6 +56,6 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
 
 ## Settings
 
-Change the tweaks on the "Tweaks" page, which is added to the options on the title screen and to 各種設定 in the pause menu. With more than 8 options, the page scrolls up and down. The options are shown in the game's language (Japanese or English).
+Change the tweaks on the "Tweaks" page, which is added to the options on the title screen and to 各種設定 in the pause menu. The options are grouped under the headers Night Crawling, My Style, Smithy, Dojo and Other. Scroll the page up and down to see the options that do not fit. The options are shown in the game's language (Japanese or English).
 
 Your settings are saved to `{game installation folder}/mods/tweaks/config.ini` when the game saves its options, and carry over the next time you start the game.

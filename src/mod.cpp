@@ -29,10 +29,12 @@ void WINAPI saveOptions(void*) {
     optionsMenu->saveIfChanged();
 }
 
-// Installs every well-formed tweak and adds its options to the menu. Returns how many were installed.
-uint32_t installTweaks(const wots4::ModContext& context, const std::vector<const tweaks::Tweak*>& tweakList) {
+// Installs every well-formed tweak of the group and adds its options to the menu under the
+// group's header. Returns how many were installed.
+uint32_t installTweaks(const wots4::ModContext& context, const tweaks::TweakGroup& group) {
+    optionsMenu->beginGroup(group.header);
     uint32_t installedCount = 0;
-    for (const tweaks::Tweak* tweak : tweakList) {
+    for (const tweaks::Tweak* tweak : group.tweaks) {
         if (!optionsMenu->isWellFormed(*tweak)) continue;
         if (tweak->install && !tweak->install(context)) {
             char line[256];
@@ -55,8 +57,12 @@ extern "C" BOOL WINAPI ModInitialize(const wots4::ModContext* context) {
     self = context->module;
     optionsMenu = new tweaks::OptionsMenu(std::wstring(context->directory) + L"config.ini", hostLog);
 
-    const std::vector<const tweaks::Tweak*> tweakList = tweaks::registeredTweaks();
-    const uint32_t installedCount = installTweaks(*context, tweakList);
+    uint32_t tweakCount = 0;
+    uint32_t installedCount = 0;
+    for (const tweaks::TweakGroup& group : tweaks::registeredTweakGroups()) {
+        tweakCount += static_cast<uint32_t>(group.tweaks.size());
+        installedCount += installTweaks(*context, group);
+    }
     bool pageAdded = false;
     if (optionsMenu->optionCount() > 0) {
         pageAdded = optionsMenu->addPage(*context);
@@ -67,7 +73,7 @@ extern "C" BOOL WINAPI ModInitialize(const wots4::ModContext* context) {
 
     char line[256];
     sprintf_s(line, "[INFO] Tweaks initialized: %u of %u tweaks installed, %u options, options page %s.",
-        installedCount, static_cast<uint32_t>(tweakList.size()), static_cast<uint32_t>(optionsMenu->optionCount()),
+        installedCount, tweakCount, static_cast<uint32_t>(optionsMenu->optionCount()),
         pageAdded ? "added" : "not added");
     hostLog(line);
     return TRUE;

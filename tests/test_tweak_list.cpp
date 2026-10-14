@@ -11,16 +11,16 @@ uint32_t failingValue;
 uint32_t malformedValue;
 bool malformedInstallCalled;
 
+// ModInitialize takes the language from the test machine, so these texts are the same in both.
+tweaks::Text inBoth(const wchar_t* text) {
+    return {text, text};
+}
+
 namespace {
 
 void betaApplied(uint32_t value) {
     ++betaAppliedCount;
     betaLastApplied = value;
-}
-
-// ModInitialize takes the language from the test machine, so these texts are the same in both.
-tweaks::Text inBoth(const wchar_t* text) {
-    return {text, text};
 }
 
 const tweaks::Text sizes[] = {inBoth(L"Small"), inBoth(L"Medium"), inBoth(L"Large")};
@@ -60,8 +60,12 @@ const tweaks::Tweak malformed{L"malformed", malformedOptions, 1, installMalforme
 
 namespace tweaks {
 
-std::vector<const Tweak*> registeredTweaks() {
-    return {&testing::alpha, &testing::failing, &testing::beta, &testing::malformed};
+std::vector<TweakGroup> registeredTweakGroups() {
+    return {
+        {testing::inBoth(L"Group A"), {&testing::alpha}},
+        {testing::inBoth(L"Not Installed"), {&testing::failing}},  // Shows no header
+        {testing::inBoth(L"Group B"), {&testing::beta, &testing::malformed}},
+    };
 }
 
 }  // namespace tweaks

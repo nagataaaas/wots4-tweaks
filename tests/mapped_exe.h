@@ -142,8 +142,10 @@ constexpr uint32_t noItem = ~0u;
 inline uint32_t optionIndex(const wchar_t* englishLabel) {
     if (pages.empty()) return noItem;
     const std::vector<wots4::OptionItem>& items = pages.back().items;
-    for (uint32_t index = 0; index < items.size(); ++index)
-        if (std::wstring(items[index].label.english) == englishLabel) return index;
+    for (uint32_t index = 0; index < items.size(); ++index) {
+        const wchar_t* label = items[index].label.english;
+        if (!wots4::isGameText(label) && std::wstring(label) == englishLabel) return index;  // Headers may be game texts
+    }
     return noItem;
 }
 inline const wots4::OptionItem& optionItem(uint32_t index) { return pages.back().items[index]; }

@@ -1,6 +1,6 @@
 // What one tweak declares. A tweak lives in src/<tweak name>/ and is listed in tweak_list.cpp.
-// The options menu shows the options of every tweak on the Tweaks options pages, 8 per page,
-// in the order of that list, and keeps their values in config.ini under [<tweak name>].
+// The options menu shows the options of every tweak on the Tweaks options page, under the
+// header of its group in that list, and keeps their values in config.ini under [<tweak name>].
 #pragma once
 #include <windows.h>
 #include <cstdint>
