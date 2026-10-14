@@ -47,8 +47,7 @@ set(TWEAKS_TWEAK_SOURCES
 # Use the Mod's folder name in the game folder (mods/<name>/) as <name>
 wots4_add_mod(tweaks SOURCES ${TWEAKS_CORE_SOURCES} ${TWEAKS_TWEAK_SOURCES} DEF src/mod.def
     LIBS wots4_minhook
-    LICENSES docs/licenses/minhook.txt
-    NO_RELEASE)
+    LICENSES docs/licenses/minhook.txt)
 if(WOTS4_BUILD_TESTS)
     # The test tweak list stands in for the real tweaks
     wots4_add_probe(tweaks_options_menu_tests
@@ -60,7 +59,8 @@ if(WOTS4_BUILD_TESTS)
     set(WOTS4_UNPACKED_EXE "${WOTS4_ROOT}/research/bin/WayOfTheSamurai4.unpacked.exe" CACHE FILEPATH "Decrypted exe")
     file(TO_NATIVE_PATH "${WOTS4_UNPACKED_EXE}" unpacked_native)
     # The game's data files that some probes copy into memory (read only)
-    set(WOTS4_GAME_DIR "D:/SteamLibrary/steamapps/common/Way of the Samurai 4" CACHE PATH "Game installation (read only)")
+    set(WOTS4_GAME_DIR "C:/Program Files (x86)/Steam/steamapps/common/Way of the Samurai 4" CACHE PATH
+        "Game installation (read only); set it when the game is in another Steam library")
     function(tweaks_add_native_probe name)
         wots4_add_probe(${name} SOURCES tests/${name}.cpp
             LINK_OPTIONS /BASE:0x10000000 /DYNAMICBASE
