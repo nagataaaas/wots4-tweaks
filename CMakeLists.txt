@@ -44,6 +44,7 @@ set(TWEAKS_TWEAK_SOURCES
     src/dojo_raid_appearance/dojo_raid_appearance.cpp
     src/dojo_raid_lineup/dojo_raid_lineup.cpp
     src/custom_style_all_arts/custom_style_all_arts.cpp
+    src/accessory_all/accessory_all.cpp
     src/rensatsu_gauge/rensatsu_gauge.cpp
     src/unlock_all/unlock_all.cpp
     src/appearance_all/appearance_all.cpp)
@@ -91,6 +92,7 @@ if(WOTS4_BUILD_TESTS)
     tweaks_add_native_probe(dojo_raid_lineup_native_probe
         "${training_school_folder}/RaidNPCData.l" "${training_school_folder}/ReputationData.l")
     tweaks_add_native_probe(custom_style_all_arts_native_probe)
+    tweaks_add_native_probe(accessory_all_native_probe)
     tweaks_add_native_probe(rensatsu_gauge_native_probe)
     tweaks_add_native_probe(unlock_all_native_probe)
     tweaks_add_native_probe(appearance_all_native_probe)

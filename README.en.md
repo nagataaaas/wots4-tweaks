@@ -50,6 +50,7 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
   - The weapon chests are not included, since buying them enlarges the chest. The accessories of unlocks can be chosen with All Accessories.
   - Which weapons enemies drop (no guns or dual swords without the licenses) is unchanged.
 - **All Appearances**: the character's Appearance settings let you choose every set of clothes, hairstyle, face and character set, including ones you have not obtained. Appearances of downloadable content can be chosen only when you have that content. Appearances that come from unlocks can be chosen with All Unlocks. What the clothes shop and the hairdresser sell is unchanged.
+- **All Accessories**: the accessory screen lets you choose every accessory, including ones you do not own. Accessories of downloadable content can be chosen only when you have that content. Shops, the records screen and gifts are unchanged.
 
 ## Installation
 
