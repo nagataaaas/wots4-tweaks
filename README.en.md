@@ -49,6 +49,7 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
 - **All Unlocks**: unlocks you have not bought on the Unlocks screen can be used as if bought: the Hard and Very Hard difficulties, the character's skin and hair colors, faces, hairstyles, clothes and body type change, the gun, rifle and dual sword licenses (equipping, drawing, buying at shops and the weapon kinds of My Style), and the chief minister's gun at the lost-and-found shop. The Unlocks screen and what you have bought stay as they are.
   - The weapon chests are not included, since buying them enlarges the chest. The accessories of unlocks can be chosen with All Accessories.
   - Which weapons enemies drop (no guns or dual swords without the licenses) is unchanged.
+- **All Appearances**: the character's Appearance settings let you choose every set of clothes, hairstyle, face and character set, including ones you have not obtained. Appearances of downloadable content can be chosen only when you have that content. Appearances that come from unlocks can be chosen with All Unlocks. What the clothes shop and the hairdresser sell is unchanged.
 
 ## Installation
 
