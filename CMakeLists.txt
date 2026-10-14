@@ -43,7 +43,8 @@ set(TWEAKS_TWEAK_SOURCES
     src/dojo_raid_defeat/dojo_raid_defeat.cpp
     src/dojo_raid_appearance/dojo_raid_appearance.cpp
     src/dojo_raid_lineup/dojo_raid_lineup.cpp
-    src/custom_style_all_arts/custom_style_all_arts.cpp)
+    src/custom_style_all_arts/custom_style_all_arts.cpp
+    src/rensatsu_gauge/rensatsu_gauge.cpp)
 
 # Use the Mod's folder name in the game folder (mods/<name>/) as <name>
 wots4_add_mod(tweaks SOURCES ${TWEAKS_CORE_SOURCES} ${TWEAKS_TWEAK_SOURCES} DEF src/mod.def
@@ -88,4 +89,5 @@ if(WOTS4_BUILD_TESTS)
     tweaks_add_native_probe(dojo_raid_lineup_native_probe
         "${training_school_folder}/RaidNPCData.l" "${training_school_folder}/ReputationData.l")
     tweaks_add_native_probe(custom_style_all_arts_native_probe)
+    tweaks_add_native_probe(rensatsu_gauge_native_probe)
 endif()

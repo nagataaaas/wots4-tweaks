@@ -23,6 +23,7 @@
 #include "dojo_raid_appearance/dojo_raid_appearance.h"
 #include "dojo_raid_lineup/dojo_raid_lineup.h"
 #include "custom_style_all_arts/custom_style_all_arts.h"
+#include "rensatsu_gauge/rensatsu_gauge.h"
 
 namespace tweaks {
 
@@ -35,7 +36,7 @@ std::vector<TweakGroup> registeredTweakGroups() {
         {wots4::localizedGameText(12), {&smithBestRollTweak, &refineQualityLimitTweak}},
         {{L"道場", L"Dojo"}, {&recruitSuccessTweak, &pupilSurvivalTweak, &pupilHiddenTweak, &dojoRaidDefeatTweak,
             &dojoRaidAppearanceTweak, &dojoRaidLineupTweak}},
-        {wots4::localizedGameText(245), {&instantJobTweak, &lootDropTweak, &setupAnytimeTweak}},
+        {wots4::localizedGameText(245), {&instantJobTweak, &lootDropTweak, &setupAnytimeTweak, &rensatsuGaugeTweak}},
     };
 }
 
