@@ -22,6 +22,7 @@
 #include "dojo_raid_defeat/dojo_raid_defeat.h"
 #include "dojo_raid_appearance/dojo_raid_appearance.h"
 #include "dojo_raid_lineup/dojo_raid_lineup.h"
+#include "custom_style_all_arts/custom_style_all_arts.h"
 
 namespace tweaks {
 
@@ -30,7 +31,7 @@ std::vector<TweakGroup> registeredTweakGroups() {
     // 道場 (13) is "Back Roads" in English, so the dojo header has its own texts.
     return {
         {wots4::localizedGameText(87), {&lauraYobaiTweak, &persuadeSuccessTweak}},
-        {{L"俺流", L"My Style"}, {&customStyleLimitTweak, &customStyleStanceTweak}},
+        {{L"俺流", L"My Style"}, {&customStyleLimitTweak, &customStyleStanceTweak, &customStyleAllArtsTweak}},
         {wots4::localizedGameText(12), {&smithBestRollTweak, &refineQualityLimitTweak}},
         {{L"道場", L"Dojo"}, {&recruitSuccessTweak, &pupilSurvivalTweak, &pupilHiddenTweak, &dojoRaidDefeatTweak,
             &dojoRaidAppearanceTweak, &dojoRaidLineupTweak}},

@@ -22,6 +22,7 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
   - A first move's command and a defensive move's type can still be set only once, across stances too. First moves taken on another stance are dimmed, and choosing one tells you which stance has it, such as "(Jo-dan)".
   - Auto-Select and Copy Stance choose moves of the slot's own stance only.
   - Turning this option off again keeps the moves of the styles you made usable in battle.
+- **All My Style Moves**: when creating a My Style, you can choose moves you have not learned yet just like the ones you have. Stances in which you have learned no moves can be chosen too, and Copy Stance copies every move. What you have learned stays as it is. A change applies from the next time you open the move list.
 - **Instant Missions**: a mission succeeds as soon as you accept it and the conversation ends. You get the same rewards, town order and records as for a normal success, except for bonus rewards (such as those for the number of enemies defeated). Night missions accepted during the day also succeed right away.
   - This includes the mission chains of Nodobotoke, Kobato, the Thief, Gramps and Shirube, battle missions such as Underbelly Recon and Government Recon, and the final mission, The Amihama Eight. Clients offer their next request just as they would after a normal success.
   - The fights and conversations with the targets are skipped. Accepting Part 1 of Grandpa's Memories or A Lid On Something Stinky also accepts Part 2, and both parts succeed.
