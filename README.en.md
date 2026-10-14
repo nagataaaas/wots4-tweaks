@@ -5,7 +5,7 @@
 > [!NOTE]
 > This Mod is for the [Steam version of Way of the Samurai 4](https://store.steampowered.com/app/312780/4/?l=english) only.
 
-A collection of small "nice to have" tweaks. Each tweak can be changed individually on the "Tweaks" page added to the game's options.
+A collection of small "nice to have" tweaks. Each tweak can be changed individually on the "Tweaks" page added to the game's options (便利機能 in the Japanese game).
 
 ## Features
 
@@ -56,6 +56,6 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
 
 ## Settings
 
-Change the tweaks on the "Tweaks" page, which is added to the options on the title screen and to 各種設定 in the pause menu. The options are grouped under the headers Night Crawling, My Style, Smithy, Dojo and Other. Scroll the page up and down to see the options that do not fit. The options are shown in the game's language (Japanese or English).
+Change the tweaks on the "Tweaks" page (便利機能 in the Japanese game), which is added to the options on the title screen and to 各種設定 in the pause menu. The options are grouped under the headers Night Crawling, My Style, Smithy, Dojo and Other. Scroll the page up and down to see the options that do not fit. The options are shown in the game's language (Japanese or English).
 
 Your settings are saved to `{game installation folder}/mods/tweaks/config.ini` when the game saves its options, and carry over the next time you start the game.

@@ -21,9 +21,10 @@ void check(bool condition, const char* name) {
 // ---------------------------------------------------------------- fake ModLoader
 
 struct RecordedPage {
-    std::wstring title;
+    std::wstring title;  // English
     std::vector<wots4::OptionItem> items;
     wots4::OptionsPageCallbacks callbacks;
+    std::wstring japaneseTitle;
 };
 std::vector<RecordedPage> recordedPages;
 std::vector<std::string> loggedLines;
@@ -42,7 +43,8 @@ BOOL WINAPI fakeAddOptionsPage(HMODULE, const wots4::LocalizedText* title, const
     if (refusePages) return FALSE;
     for (uint32_t index = 0; index < count && refuseHeaders; ++index)
         if (items[index].kind == wots4::optionHeader) return FALSE;
-    recordedPages.push_back({title->english, std::vector<wots4::OptionItem>(items, items + count), *callbacks});
+    recordedPages.push_back(
+        {title->english, std::vector<wots4::OptionItem>(items, items + count), *callbacks, title->japanese});
     return TRUE;
 }
 BOOL WINAPI fakeOnFrame(HMODULE, wots4::GameEventCallback, void*) { return TRUE; }
@@ -188,7 +190,8 @@ void testPageBoundaries() {
     eight.add(exactlyEight);
     check(eight.addPage(context) && recordedPages.size() == 1, "8 options make 1 page");
     check(!eight.addPage(context) && recordedPages.size() == 1, "the page is added only once");
-    check(!recordedPages.empty() && recordedPages[0].title == L"Tweaks", "the page is titled with the Mod's name");
+    check(!recordedPages.empty() && recordedPages[0].title == L"Tweaks" && recordedPages[0].japaneseTitle == L"便利機能",
+        "the page is titled Tweaks in English and 便利機能 in Japanese");
     check(!recordedPages.empty() && recordedPages[0].items[0].label.japanese == eightLabel.japanese &&
               recordedPages[0].items[0].label.english == eightLabel.english,
         "both languages of a label are passed to the ModLoader");

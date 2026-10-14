@@ -8,7 +8,8 @@ namespace tweaks {
 
 namespace {
 
-constexpr const wchar_t* pageTitle = L"Tweaks";
+// "Tweaks" is the Mod's name; in Japanese it reads oddly beside the game's 〜設定 pages (user decision 2026-10-14).
+constexpr wots4::LocalizedText pageTitle{L"便利機能", L"Tweaks"};
 constexpr uint32_t toggleChoiceCount = 2;
 // Long enough for any uint32_t in decimal. A longer value in config.ini is invalid anyway.
 constexpr size_t maxValueChars = 15;
@@ -109,11 +110,9 @@ bool OptionsMenu::tryAddPage(const wots4::ModContext& context) {
         const Option& option = *entry.option;
         items.push_back({option.kind, option.label, option.choices, option.choiceCount, option.defaultValue});
     }
-    // The same in both languages: "Tweaks" is the Mod's name.
-    const wots4::LocalizedText title{pageTitle, pageTitle};
     const wots4::OptionsPageCallbacks callbacks{this, readPage, changeOption};
     const auto itemCount = static_cast<uint32_t>(items.size());
-    return context.host->addOptionsPage(context.module, &title, items.data(), itemCount, &callbacks) != FALSE;
+    return context.host->addOptionsPage(context.module, &pageTitle, items.data(), itemCount, &callbacks) != FALSE;
 }
 
 bool OptionsMenu::removeHeaders() {
