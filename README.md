@@ -54,6 +54,19 @@
 
 ## インストール
 
+### 自動インストール（推奨）
+
+1. ゲームを終了します。
+2. [WayOfTheSamurai4ModInstaller.exe](https://github.com/nagataaaas/wots4-mods/releases/latest/download/WayOfTheSamurai4ModInstaller.exe) をダウンロードして実行します。
+   - 「Windows によって PC が保護されました」と出たら、「詳細情報」→「実行」を押してください。
+   - 管理者として実行してよいかの確認が出たら、「はい」を押してください（ゲームのフォルダに書き込むためです）。
+3. 画面の案内に沿って進め、Mod の一覧で `tweaks` を選びます。↑↓ で移動し、Space で選び、Enter で確定します。
+
+ModLoader も一緒に入ります。更新も同じ手順でできます。
+
+<details>
+<summary>手動インストール</summary>
+
 > [!WARNING]
 > 先に [wots4-mods（ModLoader）](https://github.com/nagataaaas/wots4-mods) を導入してください。
 
@@ -61,6 +74,8 @@
 2. [Releases](../../releases) から `wots4-mod-tweaks-<バージョン>.zip` をダウンロードし、解凍します。
 3. 解凍してできた `mods` フォルダを、侍道4のインストールフォルダ（`WayOfTheSamurai4.exe` があるフォルダ）にコピーします。すでに `mods` フォルダがある場合は、その中に中身を追加してください。
 4. `{侍道4インストールフォルダ}/mods/tweaks/mod.dll` があることを確かめてから、ゲームを起動します。
+
+</details>
 
 ## アンインストール
 
