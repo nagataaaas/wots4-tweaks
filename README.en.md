@@ -46,6 +46,9 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
   - In the game, the Half-naked Revolutionary, Foreign Nurse and Masked Bikini Women of ☆5 Challenger come at ☆5 only under certain conditions. When you choose one of them, they come regardless.
 - **Setup Anytime**: choosing Load on the title screen brings up the difficulty selection and the character creation even for a save from the middle of a playthrough. In the game, these screens come up only for a save made after a playthrough ends. Once you save the character, you carry on from where the save left off. Quitting the character creation takes you back to the title screen.
 - **Full Spring Harvest Gauge**: the Spring Harvest gauge is always full and does not go down during a Spring Harvest. Enemies' Spring Harvests are not affected.
+- **All Unlocks**: unlocks you have not bought on the Unlocks screen can be used as if bought: the Hard and Very Hard difficulties, the character's skin and hair colors, faces, hairstyles, clothes and body type change, the gun, rifle and dual sword licenses (equipping, drawing, buying at shops and the weapon kinds of My Style), and the chief minister's gun at the lost-and-found shop. The Unlocks screen and what you have bought stay as they are.
+  - The weapon chests are not included, since buying them enlarges the chest. The accessories of unlocks can be chosen with All Accessories.
+  - Which weapons enemies drop (no guns or dual swords without the licenses) is unchanged.
 
 ## Installation
 
