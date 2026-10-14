@@ -54,6 +54,11 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
 3. Copy the extracted `mods` folder into the game's installation folder (the folder containing `WayOfTheSamurai4.exe`). If a `mods` folder already exists, merge the contents into it.
 4. Make sure `{game installation folder}/mods/tweaks/mod.dll` exists, then start the game.
 
+## Uninstallation
+
+1. Close the game.
+2. Delete the `{game installation folder}/mods/tweaks/` folder. The settings in it (`config.ini`) are deleted too.
+
 ## Settings
 
 Change the tweaks on the "Tweaks" page (便利機能 in the Japanese game), which is added to the options on the title screen and to 各種設定 in the pause menu. The options are grouped under the headers Night Crawling, My Style, Smithy, Dojo and Other. Scroll the page up and down to see the options that do not fit. The options are shown in the game's language (Japanese or English).
