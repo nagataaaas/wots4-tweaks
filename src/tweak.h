@@ -27,6 +27,10 @@ struct Option {
     // Optional. Called on the game thread after *value was set: once after config.ini
     // was read, then each time the player changes the option.
     AppliedCallback applied;
+    // Optional (null texts when none). For an option the game takes up only when it starts:
+    // the page shows this text under the option while its value differs from the one the
+    // game started with. Make such an option with restartChoice().
+    Text restartNotice;
 };
 
 struct Tweak {
@@ -55,6 +59,18 @@ Option choice(const wchar_t* key, Text label, const Text (&choices)[choiceCount]
     uint32_t defaultChoice, AppliedCallback applied = nullptr) {
     static_assert(choiceCount >= 2 && choiceCount <= wots4::maxOptionChoices, "a choice option has 2 to 10 choices");
     return {wots4::optionChoice, key, label, choices, choiceCount, defaultChoice, value, applied};
+}
+
+// A choice that takes effect when the game next starts, with restartNotice shown under it
+// while the player has chosen another value. applied is still called each time; the tweak
+// uses the first call (after config.ini was read). Do not make it the last option of its
+// group: the page cannot have the next group's header right after the notice.
+template <uint32_t choiceCount>
+Option restartChoice(const wchar_t* key, Text label, const Text (&choices)[choiceCount], uint32_t* value,
+    uint32_t defaultChoice, Text restartNotice, AppliedCallback applied) {
+    Option option = choice(key, label, choices, value, defaultChoice, applied);
+    option.restartNotice = restartNotice;
+    return option;
 }
 
 }  // namespace tweaks

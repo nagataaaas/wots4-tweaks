@@ -31,7 +31,7 @@ std::vector<std::string> loggedLines;
 wots4::GameEventCallback optionsSavedCallback;
 void* optionsSavedContext;
 bool refusePages;
-bool refuseHeaders;  // Like a ModLoader that does not know headers
+bool refuseHeaders;  // Like a ModLoader that does not know headers or notices
 
 void WINAPI fakeLog(HMODULE, const char* message) {
     loggedLines.emplace_back(message);
@@ -42,7 +42,7 @@ BOOL WINAPI fakeAddOptionsPage(HMODULE, const wots4::LocalizedText* title, const
     uint32_t count, const wots4::OptionsPageCallbacks* callbacks) {
     if (refusePages) return FALSE;
     for (uint32_t index = 0; index < count && refuseHeaders; ++index)
-        if (items[index].kind == wots4::optionHeader) return FALSE;
+        if (items[index].kind == wots4::optionHeader || items[index].kind == wots4::optionNotice) return FALSE;
     recordedPages.push_back(
         {title->english, std::vector<wots4::OptionItem>(items, items + count), *callbacks, title->japanese});
     return TRUE;
@@ -221,6 +221,68 @@ void testPageBoundaries() {
     refuseHeaders = false;
 }
 
+uint32_t restartValue;
+uint32_t afterRestartValue;
+uint32_t restartAppliedCount;
+void restartApplied(uint32_t) { ++restartAppliedCount; }
+const tweaks::Text restartSizes[] = {{L"小", L"Small"}, {L"中", L"Medium"}, {L"大", L"Large"}};
+const tweaks::Text restartNotice{L"再起動後に有効", L"After a restart"};
+const tweaks::Option restartOptions[] = {
+    tweaks::restartChoice(L"size", {L"大きさ", L"Size"}, restartSizes, &restartValue, 0, restartNotice,
+        restartApplied),
+    tweaks::toggle(L"after", {L"次", L"After"}, &afterRestartValue, false),
+};
+const tweaks::Tweak restartTweak{L"restart", restartOptions, 2, nullptr};
+
+void testRestartNotices() {
+    const wots4::ModContext context{sizeof(wots4::ModContext), wots4::modApiVersion, nullptr, nullptr, nullptr,
+        testDirectory.c_str(), &fakeHost};
+    recordedPages.clear();
+    DeleteFileW(configPath.c_str());
+    writeSetting(L"restart", L"size", L"2");
+
+    tweaks::OptionsMenu menu(configPath, logToFakeHost);
+    check(menu.isWellFormed(restartTweak), "a restart choice is well formed");
+    menu.beginGroup(testing::inBoth(L"Restart"));
+    menu.add(restartTweak);
+    check(restartValue == 2 && restartAppliedCount == 1, "a restart choice is read and applied like a choice");
+    check(menu.addPage(context) && recordedPages.size() == 1, "the page with a notice is added");
+    if (recordedPages.empty()) return;
+    const RecordedPage& page = recordedPages[0];
+    check(page.items.size() == 4 && page.items[1].kind == wots4::optionChoice &&
+              page.items[2].kind == wots4::optionNotice && page.items[3].kind == wots4::optionToggle,
+        "rows: header, the restart choice, its notice, the next option");
+    check(page.items.size() == 4 && page.items[2].defaultValue == 1 && page.items[2].choiceCount == 0b011 &&
+              std::wstring(page.items[2].label.english) == L"After a restart",
+        "the notice points at the choice and shows for every value but the startup one (2)");
+
+    uint32_t values[4] = {7, 7, 7, 7};
+    page.callbacks.read(page.callbacks.context, values, 4);
+    check(values[1] == 2 && values[2] == 0 && values[3] == 0, "read reports the choice, and 0 for the notice");
+    page.callbacks.changed(page.callbacks.context, 2, 1);
+    menu.saveIfChanged();
+    check(readSetting(L"restart", L"size") == 2, "a change of the notice row is ignored");
+    page.callbacks.changed(page.callbacks.context, 1, 0);
+    check(restartValue == 0 && restartAppliedCount == 2, "a change of the restart choice sets it and calls applied");
+    menu.saveIfChanged();
+    check(readSetting(L"restart", L"size") == 0 && readSetting(L"restart", L"after") == 0,
+        "the save writes the options and no key for the notice");
+
+    refuseHeaders = true;
+    recordedPages.clear();
+    tweaks::OptionsMenu withoutNotices(configPath, logToFakeHost);
+    withoutNotices.beginGroup(testing::inBoth(L"Restart"));
+    withoutNotices.add(restartTweak);
+    check(withoutNotices.addPage(context) && recordedPages.size() == 1 && recordedPages[0].items.size() == 2,
+        "a ModLoader that refuses notices gets the page without them");
+    refuseHeaders = false;
+
+    const tweaks::Option halfNotice = tweaks::restartChoice(L"key", {L"項目", L"Label"}, restartSizes, &restartValue,
+        0, {L"再起動", nullptr}, nullptr);
+    check(!menu.isWellFormed(tweaks::Tweak{L"half", &halfNotice, 1, nullptr}),
+        "a restart notice needs the text in every language");
+}
+
 void testMalformedDefinitions() {
     uint32_t value = 0;
     const tweaks::Text label{L"項目", L"Label"};
@@ -256,6 +318,7 @@ int main() {
     }
     testModInitialize();
     testPageBoundaries();
+    testRestartNotices();
     testMalformedDefinitions();
     removeTestDirectory();
     std::printf("%d checks passed, %d failed. Wrote config.ini only under %%TEMP%%; "

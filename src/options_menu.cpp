@@ -28,7 +28,16 @@ const char* findDefinitionError(const Option& option) {
     for (uint32_t index = 0; index < option.choiceCount; ++index)
         if (!option.choices[index].japanese || !option.choices[index].english)
             return "has a choice without a text in every language";
+    if (!option.restartNotice.japanese != !option.restartNotice.english)
+        return "has a restart notice without a text in every language";
     return nullptr;
+}
+
+// Shown while the option at item has any value but the one the game started with.
+wots4::OptionItem restartNoticeItem(const Option& option, uint32_t startupValue, uint32_t item) {
+    const uint32_t everyChoice = (1u << option.choiceCount) - 1;
+    const uint32_t otherValues = everyChoice & ~(1u << startupValue);
+    return {wots4::optionNotice, option.restartNotice, nullptr, otherValues, item};
 }
 
 }  // namespace
@@ -68,6 +77,7 @@ void OptionsMenu::add(const Tweak& tweak) {
         }
         entries.push_back({&tweak, &option, {}});
         ++addedOptionCount;
+        if (option.restartNotice.japanese) entries.push_back({&tweak, &option, {}, true, *option.value});
     }
 }
 
@@ -87,9 +97,9 @@ uint32_t OptionsMenu::readSavedValue(const Tweak& tweak, const Option& option) c
 bool OptionsMenu::addPage(const wots4::ModContext& context) {
     if (pageAdded || addedOptionCount == 0) return false;
     pageAdded = tryAddPage(context);
-    if (!pageAdded && removeHeaders()) {
-        logFormatted("[WARN] The ModLoader did not accept the options page with headers; "
-                     "adding it without them (a ModLoader without headers refuses them).");
+    if (!pageAdded && removeHeadersAndNotices()) {
+        logFormatted("[WARN] The ModLoader did not accept the options page with headers and restart notices; "
+                     "adding it without them (a ModLoader without headers or notices refuses them).");
         pageAdded = tryAddPage(context);
     }
     if (!pageAdded)
@@ -107,6 +117,11 @@ bool OptionsMenu::tryAddPage(const wots4::ModContext& context) {
             items.push_back({wots4::optionHeader, entry.header, nullptr, 0, 0});
             continue;
         }
+        if (entry.isNotice) {
+            const auto optionItem = static_cast<uint32_t>(items.size() - 1);  // The row above
+            items.push_back(restartNoticeItem(*entry.option, entry.startupValue, optionItem));
+            continue;
+        }
         const Option& option = *entry.option;
         items.push_back({option.kind, option.label, option.choices, option.choiceCount, option.defaultValue});
     }
@@ -115,11 +130,11 @@ bool OptionsMenu::tryAddPage(const wots4::ModContext& context) {
     return context.host->addOptionsPage(context.module, &pageTitle, items.data(), itemCount, &callbacks) != FALSE;
 }
 
-bool OptionsMenu::removeHeaders() {
-    const auto isHeader = [](const Entry& entry) { return !entry.option; };
-    const auto firstHeader = std::remove_if(entries.begin(), entries.end(), isHeader);
-    if (firstHeader == entries.end()) return false;
-    entries.erase(firstHeader, entries.end());
+bool OptionsMenu::removeHeadersAndNotices() {
+    const auto isLabel = [](const Entry& entry) { return !isOption(entry); };
+    const auto firstLabel = std::remove_if(entries.begin(), entries.end(), isLabel);
+    if (firstLabel == entries.end()) return false;
+    entries.erase(firstLabel, entries.end());
     return true;
 }
 
@@ -127,14 +142,14 @@ void WINAPI OptionsMenu::readPage(void* context, uint32_t* values, uint32_t coun
     const OptionsMenu& menu = *static_cast<const OptionsMenu*>(context);
     if (count != menu.entries.size()) return;
     for (uint32_t item = 0; item < count; ++item) {
-        const Option* option = menu.entries[item].option;
-        values[item] = option ? *option->value : 0;  // The ModLoader does not use a header's value
+        const Entry& entry = menu.entries[item];
+        values[item] = isOption(entry) ? *entry.option->value : 0;  // The ModLoader does not use the others'
     }
 }
 
 void WINAPI OptionsMenu::changeOption(void* context, uint32_t item, uint32_t value) {
     OptionsMenu& menu = *static_cast<OptionsMenu*>(context);
-    if (item >= menu.entries.size() || !menu.entries[item].option) return;
+    if (item >= menu.entries.size() || !isOption(menu.entries[item])) return;
     const Option& option = *menu.entries[item].option;
     if (value >= option.choiceCount) return;
 
@@ -151,7 +166,7 @@ void OptionsMenu::saveIfChanged() {
 
 bool OptionsMenu::writeValues() {
     for (const Entry& entry : entries) {
-        if (!entry.option) continue;
+        if (!isOption(entry)) continue;
         wchar_t text[maxValueChars + 1];
         swprintf_s(text, L"%u", *entry.option->value);
         if (WritePrivateProfileStringW(entry.tweak->name, entry.option->key, text, configPath.c_str())) continue;

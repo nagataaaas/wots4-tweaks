@@ -37,19 +37,23 @@ public:
     size_t optionCount() const { return addedOptionCount; }
 
 private:
-    // One row of the page: an option, or a header (option is null).
+    // One row of the page: an option, a header (option is null), or the restart notice of the
+    // option in the row above (isNotice).
     struct Entry {
         const Tweak* tweak;
         const Option* option;
         Text header;
+        bool isNotice = false;
+        uint32_t startupValue = 0;  // Of a notice: the option's value when the game started
     };
+    static bool isOption(const Entry& entry) { return entry.option && !entry.isNotice; }
 
     static void WINAPI readPage(void* menu, uint32_t* values, uint32_t count);
     static void WINAPI changeOption(void* menu, uint32_t item, uint32_t value);
 
     bool tryAddPage(const wots4::ModContext& context);
-    // False if there were none.
-    bool removeHeaders();
+    // Removes the headers and notices. False if there were none.
+    bool removeHeadersAndNotices();
     uint32_t readSavedValue(const Tweak& tweak, const Option& option) const;
     bool writeValues();
     void logFormatted(const char* format, ...) const;
