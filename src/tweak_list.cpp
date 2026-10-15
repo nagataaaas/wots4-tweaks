@@ -27,6 +27,7 @@
 #include "rensatsu_gauge/rensatsu_gauge.h"
 #include "unlock_all/unlock_all.h"
 #include "appearance_all/appearance_all.h"
+#include "big_shot_marks/big_shot_marks.h"
 
 namespace tweaks {
 
@@ -40,7 +41,7 @@ std::vector<TweakGroup> registeredTweakGroups() {
         {{L"道場", L"Dojo"}, {&recruitSuccessTweak, &pupilSurvivalTweak, &pupilHiddenTweak, &dojoRaidDefeatTweak,
             &dojoRaidAppearanceTweak, &dojoRaidLineupTweak}},
         {wots4::localizedGameText(245), {&instantJobTweak, &lootDropTweak, &setupAnytimeTweak, &rensatsuGaugeTweak,
-            &unlockAllTweak, &appearanceAllTweak, &accessoryAllTweak}},
+            &unlockAllTweak, &appearanceAllTweak, &accessoryAllTweak, &bigShotMarksTweak}},
     };
 }
 

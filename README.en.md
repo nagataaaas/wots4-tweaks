@@ -51,6 +51,10 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
   - Which weapons enemies drop (no guns or dual swords without the licenses) is unchanged.
 - **All Appearances**: the character's Appearance settings let you choose every set of clothes, hairstyle, face and character set, including ones you have not obtained. Appearances of downloadable content can be chosen only when you have that content. Appearances that come from unlocks can be chosen with All Unlocks. What the clothes shop and the hairdresser sell is unchanged.
 - **All Accessories**: the accessory screen lets you choose every accessory, including ones you do not own. Accessories of downloadable content can be chosen only when you have that content. Shops, the records screen and gifts are unchanged.
+- **Big Shot in Move List**: moves whose power the Big Shot weapon charm raises get a mark after "Str" on their cards in the Move List and when choosing My Style moves.
+  - BS: the Big Shot bonus also grows with the weapon's attack power.
+  - BS-: the Big Shot bonus is only added as it is and does not grow with the weapon's attack power (moves such as kicks and unarmed moves).
+  - Big Shot does not work on moves without a mark. The setting applies from the next time you open a move list.
 
 ## Installation
 
