@@ -181,7 +181,7 @@ const Text rank2Choices[] = {dontFix, {L"サングラスの大工", L"Sunglasses
     {L"渡世人と魔鱗組", L"Yakuza and Demonscale"}};
 const Text rank3Choices[] = {dontFix, {L"赤い覆面浪人", L"Masked Red Ronin"}, {L"浪人傘浪人", L"Ronin-Kasa Ronin"},
     {L"猫耳忍者2人", L"Masked Bikini Women"}};
-const Text rank4Choices[] = {dontFix, {L"ピンクの看護師", L"Foreign Nurse"}, {L"般若面の侍", L"Masked Samurai"},
+const Text rank4Choices[] = {dontFix, {L"ピンクの看護師", L"Foreign Nurse"}, {L"面のきれいな侍", L"Masked Clean Samurai"},
     {L"岡っ引きと同心", L"Thief-taker and Constable"}};
 const Text rank5Choices[] = {dontFix, {L"天蓋の幽霊", L"Tengai Ronin"}, {L"二刀流の海兵隊", L"Royal Marine"},
     {L"老武士2人", L"Dual Old Samurai"}, {L"上裸の革命家", L"Half-naked Revolutionary"}, {L"ピンクの看護師", L"Foreign Nurse"},
