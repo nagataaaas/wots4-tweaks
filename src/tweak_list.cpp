@@ -28,6 +28,11 @@
 #include "unlock_all/unlock_all.h"
 #include "appearance_all/appearance_all.h"
 #include "big_shot_marks/big_shot_marks.h"
+#include "enemy_spawn_interval/enemy_spawn_interval.h"
+#include "enemy_spawn_limit/enemy_spawn_limit.h"
+#include "enemy_corpse_cleanup/enemy_corpse_cleanup.h"
+#include "enemy_pool_size/enemy_pool_size.h"
+#include "ground_item_limit/ground_item_limit.h"
 
 namespace tweaks {
 
@@ -40,6 +45,9 @@ std::vector<TweakGroup> registeredTweakGroups() {
         {wots4::localizedGameText(12), {&smithBestRollTweak, &refineQualityLimitTweak}},
         {{L"道場", L"Dojo"}, {&recruitSuccessTweak, &pupilSurvivalTweak, &pupilHiddenTweak, &dojoRaidDefeatTweak,
             &dojoRaidAppearanceTweak, &dojoRaidLineupTweak}},
+        // Dropped Item Limit has a restart notice, which the next group's header cannot follow.
+        {{L"戦闘", L"Battle"}, {&enemySpawnIntervalTweak, &enemySpawnLimitTweak, &enemyPoolSizeTweak,
+            &groundItemLimitTweak, &enemyCorpseCleanupTweak}},
         {wots4::localizedGameText(245), {&instantJobTweak, &lootDropTweak, &setupAnytimeTweak, &rensatsuGaugeTweak,
             &unlockAllTweak, &appearanceAllTweak, &accessoryAllTweak, &bigShotMarksTweak}},
     };

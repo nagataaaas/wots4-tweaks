@@ -48,7 +48,13 @@ set(TWEAKS_TWEAK_SOURCES
     src/rensatsu_gauge/rensatsu_gauge.cpp
     src/unlock_all/unlock_all.cpp
     src/appearance_all/appearance_all.cpp
-    src/big_shot_marks/big_shot_marks.cpp)
+    src/big_shot_marks/big_shot_marks.cpp
+    src/enemy_spawn_interval/enemy_spawn_interval.cpp
+    src/enemy_spawn_limit/enemy_spawn_limit.cpp
+    src/enemy_corpse_cleanup/enemy_corpse_cleanup.cpp
+    src/enemy_pool_size/enemy_pool_size.cpp
+    src/ground_item_limit/ground_item_limit.cpp
+    src/ground_item_limit/ground_slots.cpp)
 
 # Use the Mod's folder name in the game folder (mods/<name>/) as <name>
 wots4_add_mod(tweaks SOURCES ${TWEAKS_CORE_SOURCES} ${TWEAKS_TWEAK_SOURCES} DEF src/mod.def
@@ -96,6 +102,9 @@ if(WOTS4_BUILD_TESTS)
     tweaks_add_native_probe(accessory_all_native_probe)
     tweaks_add_native_probe(rensatsu_gauge_native_probe)
     tweaks_add_native_probe(unlock_all_native_probe)
+    tweaks_add_native_probe(battle_tweaks_native_probe)
+    tweaks_add_native_probe(ground_item_limit_native_probe)
+    tweaks_add_native_probe(enemy_pool_size_native_probe)
     tweaks_add_native_probe(appearance_all_native_probe)
     tweaks_add_native_probe(big_shot_marks_native_probe)
 endif()

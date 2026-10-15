@@ -44,6 +44,18 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
   - Challenger Rep: challengers of the chosen reputation (☆1 to ☆5) come, whatever your dojo's reputation. With Don't Fix, they follow your dojo's reputation.
   - ☆1 to ☆5 Challenger: when challengers of that reputation come, the chosen ones come. With Don't Fix, the game picks among the challengers of that reputation.
   - In the game, the Half-naked Revolutionary, Foreign Nurse and Masked Bikini Women of ☆5 Challenger come at ☆5 only under certain conditions. When you choose one of them, they come regardless.
+- **Enemy Spawn Interval**: choose how often the enemies that keep coming as you defeat them appear. This covers battle missions such as Underbelly Recon and the battles of the story.
+  - Default: about one every second.
+  - 0.5 s, 0.2 s, 0.1 s: one comes at that interval.
+- **More Enemies at Once**: in battle missions, up to 8 of these enemies are out at once instead of 6. Story battles already bring out all the enemies they have, so they stay the same.
+- **Enemy Pool Size**: in battle missions, the enemies that keep coming as you defeat them number 16 or 24 instead of 8, so new ones keep coming even while bodies lie in view. More Enemies at Once raises how many are out at once. Story battles stay the same. The setting takes effect from the next battle mission that starts.
+- **Dropped Item Limit**: choose how many weapons and how many items can lie on the ground. Past the limit, the oldest disappear. Save the setting and restart the game for it to fully take effect (until then, weapons and items together stop at 60).
+  - Default: 30 weapons and 30 items.
+  - 60, 120: up to that many of each.
+- **Defeated Enemy Cleanup**: no new enemy comes until a defeated one's body is cleared. Choose how bodies are cleared.
+  - Default: a body is cleared about a second after it falls, once it is off the screen. An enemy still going down, as in a Spring Harvest, is not cleared until it has fallen.
+  - Off Screen at Once: a body off the screen is cleared at once, even while it is still going down.
+  - Even On Screen: about a second after an enemy starts going down, its body disappears even on the screen, along with anything you could have looted from it.
 - **Setup Anytime**: choosing Load on the title screen brings up the difficulty selection and the character creation even for a save from the middle of a playthrough. In the game, these screens come up only for a save made after a playthrough ends. Once you save the character, you carry on from where the save left off. Quitting the character creation takes you back to the title screen.
 - **Full Spring Harvest Gauge**: the Spring Harvest gauge is always full and does not go down during a Spring Harvest. Enemies' Spring Harvests are not affected.
 - **All Unlocks**: unlocks you have not bought on the Unlocks screen can be used as if bought: the Hard and Very Hard difficulties, the character's skin and hair colors, faces, hairstyles, clothes and body type change, the gun, rifle and dual sword licenses (equipping, drawing, buying at shops and the weapon kinds of My Style), and the chief minister's gun at the lost-and-found shop. The Unlocks screen and what you have bought stay as they are.

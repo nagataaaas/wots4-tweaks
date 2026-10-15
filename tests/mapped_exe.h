@@ -107,7 +107,19 @@ inline BOOL WINAPI hostAddOptionsPage(HMODULE, const wots4::LocalizedText* title
     pages.push_back({title->english, std::vector<wots4::OptionItem>(items, items + count), *callbacks});
     return TRUE;
 }
-inline BOOL WINAPI hostOnFrame(HMODULE, wots4::GameEventCallback, void*) { return TRUE; }
+struct FrameHandler {
+    wots4::GameEventCallback callback;
+    void* context;
+};
+inline std::vector<FrameHandler> frameHandlers;  // Cleared by initializeMod
+inline BOOL WINAPI hostOnFrame(HMODULE, wots4::GameEventCallback callback, void* context) {
+    frameHandlers.push_back({callback, context});
+    return TRUE;
+}
+// Calls every onFrame callback once, as the ModLoader does after each game frame.
+inline void runFrame() {
+    for (const FrameHandler& handler : frameHandlers) handler.callback(handler.context);
+}
 inline BOOL WINAPI hostOnOptionsSaved(HMODULE, wots4::GameEventCallback callback, void* context) {
     optionsSavedCallback = callback;
     optionsSavedContext = context;
@@ -184,6 +196,7 @@ inline bool loadMod(const char* path) {
     return modInitialize != nullptr;
 }
 inline bool initializeMod() {
+    frameHandlers.clear();
     const wots4::ModContext context{sizeof(context), wots4::modApiVersion, nullptr, modModule,
         reinterpret_cast<HMODULE>(imageBase), testDirectory.c_str(), &host};
     return modInitialize(&context) == TRUE;
