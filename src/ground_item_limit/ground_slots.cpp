@@ -90,6 +90,10 @@ constexpr size_t arrayCountSiteCount = _countof(arrayCountSites);
 
 // The 8-bit "lea edx, [ecx+10]" (0x4f6f69, 6 places a turn); 240 / 6 still fits.
 constexpr uintptr_t groupsOfSixDisplacement = 0x4f6f6b;
+// The 8-bit "lea edx, [esi-9]" (0x4f7139) after "mov esi, 10": the loop at 0x4f7130 makes its step
+// of 1, which is also the mark it writes, from its count, so the displacement follows the count.
+constexpr uintptr_t markStepDisplacement = 0x4f713b;
+constexpr uint8_t markStepFromGroupsOfSix(uint32_t groups) { return static_cast<uint8_t>(1 - groups); }
 
 constexpr uint8_t jumpOpcode = 0xe9;
 constexpr uint32_t jumpLength = 5;
@@ -98,7 +102,7 @@ constexpr uint32_t shortLoopCheckLength = 5;  // cmp reg, imm8 (3) + jl rel8 (2)
 constexpr uint32_t nearLoopCheckLength = 9;   // cmp reg, imm8 (3) + jl rel32 (6)
 constexpr uint32_t arrayCountLength = 4;      // push imm8 (2) + push imm8 (2)
 
-constexpr size_t patchCount = operandSiteCount + loopCheckSiteCount + arrayCountSiteCount + 1;
+constexpr size_t patchCount = operandSiteCount + loopCheckSiteCount + arrayCountSiteCount + 2;
 CodePatch patches[patchCount] = {
     // Operands; the bytes are set when the game starts.
     CodePatch(0x4f5bf2, {0, 0, 0, 0}), CodePatch(0x4f7c1c, {0, 0, 0, 0}), CodePatch(0x553a1f, {0, 0, 0, 0}),
@@ -115,11 +119,12 @@ CodePatch patches[patchCount] = {
     CodePatch(0x522bb9, {0, 0, 0, 0, 0}),
     // Array counts: a jump to the stub, then nops.
     CodePatch(0x4f5b6d, {0, 0, 0, 0, 0, 0, 0}), CodePatch(0x4f5d44, {0, 0, 0, 0, 0}),
-    CodePatch(groupsOfSixDisplacement, {0}),
+    CodePatch(groupsOfSixDisplacement, {0}), CodePatch(markStepDisplacement, {0}),
 };
 constexpr size_t firstLoopCheckPatch = operandSiteCount;
 constexpr size_t firstArrayCountPatch = firstLoopCheckPatch + loopCheckSiteCount;
 constexpr size_t groupsOfSixPatch = firstArrayCountPatch + arrayCountSiteCount;
+constexpr size_t markStepPatch = groupsOfSixPatch + 1;
 
 GameImage game;
 const TweakLog* logger = nullptr;
@@ -167,6 +172,7 @@ bool codeMatches() {
     const uint8_t constructorFollowing[] = {0x8d, 0x43, 0x08};  // lea eax, [ebx+8]
     const uint8_t destructorFollowing[] = {0x52};               // push edx
     const uint8_t groupsOfSix[] = {0x8d, 0x51, gamePlaceCount / 6};  // lea edx, [ecx+10]
+    const uint8_t markStep[] = {0x8d, 0x56, markStepFromGroupsOfSix(gamePlaceCount / 6)};  // lea edx, [esi-9]
     return operandsMatch() && loopChecksMatch() &&
            game.codeIs(arrayCountSites[0].instruction, arrayCounts, sizeof(arrayCounts)) &&
            game.codeIs(arrayCountSites[0].instruction + arrayCountLength, constructorFollowing,
@@ -174,7 +180,8 @@ bool codeMatches() {
            game.codeIs(arrayCountSites[1].instruction, arrayCounts, sizeof(arrayCounts)) &&
            game.codeIs(arrayCountSites[1].instruction + arrayCountLength, destructorFollowing,
                sizeof(destructorFollowing)) &&
-           game.codeIs(groupsOfSixDisplacement - 2, groupsOfSix, sizeof(groupsOfSix));
+           game.codeIs(groupsOfSixDisplacement - 2, groupsOfSix, sizeof(groupsOfSix)) &&
+           game.codeIs(markStepDisplacement - 2, markStep, sizeof(markStep));
 }
 
 // patches lists the sites in the order of the tables above; a mistake there would write one site's
@@ -187,7 +194,8 @@ bool patchesFollowSites() {
         if (patches[firstLoopCheckPatch + index].preferredAddress() != loopCheckSites[index].instruction) return false;
     for (size_t index = 0; index < arrayCountSiteCount; ++index)
         if (patches[firstArrayCountPatch + index].preferredAddress() != arrayCountSites[index].instruction) return false;
-    return patches[groupsOfSixPatch].preferredAddress() == groupsOfSixDisplacement;
+    return patches[groupsOfSixPatch].preferredAddress() == groupsOfSixDisplacement &&
+           patches[markStepPatch].preferredAddress() == markStepDisplacement;
 }
 
 // ---------------------------------------------------------------- stubs
@@ -269,6 +277,8 @@ bool preparePatches(uint32_t placeCount) {
         writeArrayCountStub(writer, arrayCountSites[index], firstArrayCountPatch + index, placeCount);
     const auto groupsOfSix = static_cast<uint8_t>(placeCount / 6);
     patches[groupsOfSixPatch].setPatchedBytes(&groupsOfSix);
+    const uint8_t markStep = markStepFromGroupsOfSix(groupsOfSix);
+    patches[markStepPatch].setPatchedBytes(&markStep);
     FlushInstructionCache(GetCurrentProcess(), stubs, stubMemorySize);
     return true;
 }

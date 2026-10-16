@@ -20,6 +20,7 @@ constexpr uint32_t guardSize = 0x40;
 constexpr uint8_t guardByte = 0xcc;
 constexpr uintptr_t constructor = 0x4f5b60;      // ebx = object
 constexpr uintptr_t findFreePlace = 0x4f7710;    // edx = object, esi = where to write the index
+constexpr uintptr_t markPlaces = 0x4f7130;       // eax = object, ecx = key; marks the taken places with it
 constexpr uintptr_t spawnerVtable = 0x988540;
 constexpr uintptr_t limitOperand = 0x4f7796;     // mov cl, 30
 
@@ -53,6 +54,15 @@ uint8_t* runFindFreePlace(uint8_t* object, uint32_t* index) {
     return place;
 }
 
+void runMarkPlaces(uint8_t* object, uint32_t key) {
+    const uintptr_t function = va(markPlaces);
+    __asm {
+        mov eax, object
+        mov ecx, key
+        call function
+    }
+}
+
 uint32_t& at(uint8_t* object, uint32_t offset) { return *reinterpret_cast<uint32_t*>(object + offset); }
 
 void checkOperands() {
@@ -68,6 +78,8 @@ void checkOperands() {
     check(codeUint32(0x4f7791) == placeCount / 5 && codeUint32(0x4f7132) == placeCount / 6 &&
               codeByte(0x4f6f6b) == placeCount / 6,
         "the loops of 5 and 6 places a turn go 48 and 40 turns");
+    check(codeByte(0x4f713b) == static_cast<uint8_t>(1 - placeCount / 6),
+        "the loop at 0x4f7130 still steps by 1 (lea edx, [esi-39])");
     const uintptr_t stubbed[] = {0x4f5ca5, 0x4f6a59, 0x4f70ec, 0x4f71ba, 0x4f721d, 0x4f7266, 0x4f771e, 0x4f7909,
         0x4f7992, 0x4fcffe, 0x522bb9, 0x4f5b6d, 0x4f5d44};
     bool jumps = true;
@@ -104,6 +116,27 @@ void checkGameCodeOnBiggerObject() {
     index = 99;
     found = runFindFreePlace(object, &index);
     check(found == nullptr && index == 99, "with all 240 places taken the search finds none and stops");
+
+    constexpr uint32_t key = 0x1234;
+    constexpr uint32_t markOffset = 0x18;
+    const uint32_t keyedPlaces[] = {0, 59, 60, 200, placeCount - 1};
+    for (uint32_t place = 0; place < placeCount; ++place) {
+        at(object, 8 + place * placeSize + 4) = 0;
+        object[8 + place * placeSize + markOffset] = 0;
+    }
+    for (uint32_t place : keyedPlaces) at(object, 8 + place * placeSize + 4) = key;
+    runMarkPlaces(object, key);
+    bool marksRight = true;
+    for (uint32_t place = 0; place < placeCount; ++place) {
+        bool keyed = false;
+        for (uint32_t keyedPlace : keyedPlaces) keyed = keyed || place == keyedPlace;
+        marksRight = marksRight && object[8 + place * placeSize + markOffset] == (keyed ? 1 : 0);
+    }
+    check(marksRight, "0x4f7130 marks with 1 just the places 0, 59, 60, 200 and 239 holding the key, and returns");
+    guardKept = true;
+    for (uint32_t offset = objectSize; offset < objectSize + guardSize; ++offset)
+        guardKept = guardKept && object[offset] == guardByte;
+    check(guardKept, "0x4f7130 writes nothing past the object");
 }
 
 void checkRestartNotice() {
