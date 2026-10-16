@@ -1,7 +1,12 @@
 // Installs mod.dll on a copy of the exe mapped into this process and calls the game's loss of
-// durability (0x693bf0, now hooked) with a synthetic weapon and characters: the player's weapon
-// keeps its durability while the option is on, another character's weapon loses it as before.
+// durability (0x693bf0, now hooked) with a synthetic weapon and characters: with No Loss the
+// player's weapon keeps its durability while another character's loses it as before; with Break at
+// Once the game is given 32767. Breaking runs code these synthetic objects cannot (the weapon's
+// vtable, the message at each hundred), so that choice is checked through the game's own factor of
+// [parameters+0x250] (when [parameters+0x27c] has 0x10), which makes 3 lose 0 and 32767 lose 32.
+// The test fills the import of floor ([0x9051b0]) that the factor uses.
 #include <cstdio>
+#include <cmath>
 #include <cstring>
 #include "mapped_exe.h"
 
@@ -19,6 +24,13 @@ constexpr int32_t otherId = 7;
 constexpr int32_t startDurability = 550;
 constexpr int32_t amount = 3;  // Stays within the same hundred, so no message and no break
 
+constexpr uint32_t lossFactorFlagsOffset = 0x27c;
+constexpr uint8_t lossFactorFlag = 0x10;
+constexpr uint32_t lossFactorOffset = 0x250;  // float; the loss becomes floor(loss * factor)
+constexpr float tinyLossFactor = 0.001f;
+constexpr int32_t scaledBreakingLoss = 32;  // floor(32767 * 0.001)
+constexpr uintptr_t floorImport = 0x9051b0;  // MSVCR100 floor
+
 struct Character {
     alignas(16) uint8_t object[0x40] = {};
     alignas(16) uint8_t parameters[0x400] = {};
@@ -26,6 +38,10 @@ struct Character {
         auto* parametersAddress = parameters;
         std::memcpy(object + parametersOffset, &parametersAddress, sizeof(parametersAddress));
         std::memcpy(parameters + idOffset, &id, sizeof(id));
+    }
+    void scaleLossBy(float factor) {
+        parameters[lossFactorFlagsOffset] |= lossFactorFlag;
+        std::memcpy(parameters + lossFactorOffset, &factor, sizeof(factor));
     }
 };
 
@@ -114,56 +130,83 @@ int main(int argc, char** argv) {
     // A different game: the tweak is skipped and nothing is claimed or hooked.
     codeByte(0x693c26 + 3) = 0x5c;
     check(initializeMod(), "with changed game code the Mod still initializes");
-    check(loggedText("No Durability Loss: the loss of weapon durability is not the known version at 0x693bf0; "
+    check(loggedText("Weapon Durability: the loss of weapon durability is not the known version at 0x693bf0; "
                      "the tweak is skipped"),
         "the skipped tweak is logged");
-    check(!claimedAt(loseDurability) && optionIndex(L"No Durability Loss") == noItem, "nothing is claimed or shown");
+    check(!claimedAt(loseDurability) && optionIndex(L"Weapon Durability") == noItem, "nothing is claimed or shown");
     codeByte(0x693c26 + 3) = 0x58;
 
     check(initializeMod(), "the Mod initializes on the known game code");
     check(claimed(loseDurability, 6) && codeByte(loseDurability) == jumpOpcode, "the function's entry is hooked");
-    const uint32_t item = optionIndex(L"No Durability Loss");
-    check(item != noItem && optionItem(item).kind == wots4::optionToggle &&
-              std::wstring(optionItem(item).label.japanese) == L"耐久値減らない",
-        "an on / off option is passed in both languages");
+    const uint32_t item = optionIndex(L"Weapon Durability");
+    check(item != noItem && optionItem(item).kind == wots4::optionChoice && optionItem(item).choiceCount == 3 &&
+              std::wstring(optionItem(item).label.japanese) == L"武器耐久値" &&
+              std::wstring(optionItem(item).choices[2].japanese) == L"即破損",
+        "a choice of 3 (デフォルト / 減らない / 即破損) is passed in both languages");
     if (item == noItem) return 1;
-    check(optionValue(item) == 0, "without config.ini the tweak is off");
+    check(optionValue(item) == 0, "without config.ini the tweak is the default");
+    constexpr uint32_t gameDefault = 0;
+    constexpr uint32_t noLoss = 1;
+    constexpr uint32_t breakAtOnce = 2;
 
     Character player(playerId);
     Character other(otherId);
     Weapon weapon;
 
     check(callLoseDurability(weapon, player, amount) == 0 && weapon.durability() == startDurability - amount,
-        "off: the player's weapon loses durability as in the game");
+        "default: the player's weapon loses durability as in the game");
 
-    changeOption(item, 1);
+    changeOption(item, noLoss);
     weapon.setDurability(startDurability);
     check(callLoseDurability(weapon, player, amount) == 0 && weapon.durability() == startDurability,
-        "on: the player's weapon keeps its durability");
+        "no loss: the player's weapon keeps its durability");
     weapon.setDurability(2);
     check(callLoseDurability(weapon, player, 50) == 0 && weapon.durability() == 2,
-        "on: a nearly broken weapon of the player does not break");
+        "no loss: a nearly broken weapon of the player does not break");
     weapon.setDurability(startDurability);
     check(callLoseDurability(weapon, other, amount) == 0 && weapon.durability() == startDurability - amount,
-        "on: another character's weapon still loses durability");
+        "no loss: another character's weapon still loses durability");
 
     Weapon gun;
     holdWeapon(player, gun);
     check(callLoseGunDurability(player, amount) == 0 && gun.durability() == startDurability,
-        "on: the player's gun (the +0x38 path) keeps its durability");
+        "no loss: the player's gun (the +0x38 path) keeps its durability");
     holdWeapon(other, gun);
     check(callLoseGunDurability(other, amount) == 0 && gun.durability() == startDurability - amount,
-        "on: another character's gun still loses durability");
+        "no loss: another character's gun still loses durability");
 
-    changeOption(item, 0);
+    // floor(3 * 0.001) = 0, floor(32767 * 0.001) = 32
+    double (*const floorFunction)(double) = &std::floor;
+    *reinterpret_cast<uintptr_t*>(va(floorImport)) = reinterpret_cast<uintptr_t>(floorFunction);
+    Character scaledPlayer(playerId);
+    Character scaledOther(otherId);
+    scaledPlayer.scaleLossBy(tinyLossFactor);
+    scaledOther.scaleLossBy(tinyLossFactor);
+    changeOption(item, gameDefault);
+    weapon.setDurability(startDurability);
+    check(callLoseDurability(weapon, scaledOther, amount) == 0 && weapon.durability() == startDurability,
+        "default with the game's factor: 3 loses 0");
+    changeOption(item, breakAtOnce);
+    weapon.setDurability(startDurability);
+    const int32_t afterBreakingLoss = startDurability - scaledBreakingLoss;
+    check(callLoseDurability(weapon, scaledOther, amount) == 0 && weapon.durability() == afterBreakingLoss,
+        "break at once: another character's loss is made 32767 (loses 32 with the factor)");
+    weapon.setDurability(startDurability);
+    check(callLoseDurability(weapon, scaledPlayer, amount) == 0 && weapon.durability() == afterBreakingLoss,
+        "break at once: the player's loss is made 32767 too");
+    weapon.setDurability(startDurability);
+    check(callLoseDurability(weapon, scaledOther, 0) == 0 && weapon.durability() == startDurability,
+        "break at once: a loss of 0 stays 0");
+
+    changeOption(item, gameDefault);
     weapon.setDurability(startDurability);
     check(callLoseDurability(weapon, player, amount) == 0 && weapon.durability() == startDurability - amount,
-        "off again: the player's weapon loses durability");
+        "default again: the player's weapon loses durability");
 
-    changeOption(item, 1);
+    changeOption(item, breakAtOnce);
     check(optionsSavedCallback != nullptr, "the options save is watched");
     if (optionsSavedCallback) optionsSavedCallback(optionsSavedContext);
-    check(GetPrivateProfileIntW(L"weapon_durability", L"enabled", 99, configPath().c_str()) == 1,
-        "the options save writes [weapon_durability] enabled=1");
+    check(GetPrivateProfileIntW(L"weapon_durability", L"durability", 99, configPath().c_str()) == 2,
+        "the options save writes [weapon_durability] durability=2");
     return finish("weapon_durability_native_probe");
 }
