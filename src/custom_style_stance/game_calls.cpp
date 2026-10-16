@@ -65,6 +65,7 @@ uintptr_t addMotionEntriesAddress;
 uintptr_t registerMotionAddress;
 using FreeMotionEntries = void(__stdcall*)(MotionEntries* entries);
 FreeMotionEntries freeMotionEntriesOf;
+uintptr_t slotStanceAddress;
 using SkillLookup = int(__cdecl*)(int skill);
 SkillLookup defenceIndexOf;
 SkillLookup defenceTypeOf;
@@ -116,6 +117,7 @@ void setUpGameCalls(const GameImage& game) {
     addMotionEntriesAddress = game.address(0x44bc50);
     registerMotionAddress = game.address(0x454c70);
     freeMotionEntriesOf = reinterpret_cast<FreeMotionEntries>(game.address(0x44bea0));
+    slotStanceAddress = game.address(0x486050);
     defenceIndexOf = reinterpret_cast<SkillLookup>(game.address(0x59d9b0));
     defenceTypeOf = reinterpret_cast<SkillLookup>(game.address(0x59da20));
 }
@@ -356,6 +358,17 @@ void registerMotion(void* store, int slotKey, void* entry) {
 
 void freeMotionEntries(MotionEntries& entries) {
     freeMotionEntriesOf(&entries);
+}
+
+// eax = parameter
+int slotStanceOf(void* parameter) {
+    int stance;
+    __asm {
+        mov eax, parameter
+        call slotStanceAddress
+        mov stance, eax
+    }
+    return stance;
 }
 
 int defenceIndex(int skill) {

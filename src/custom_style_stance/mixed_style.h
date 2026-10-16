@@ -1,7 +1,7 @@
 // What a created style holding other stances' moves (stance_rules.h) needs outside the My Style
 // screens: the motions of those moves, registered with the stance's own when a character takes
-// the style, and the per-stance record of the moves seen and used, kept under the moves' own
-// stances and numbers.
+// the style, the per-stance record of the moves seen and used, kept under the moves' own
+// stances and numbers, and the sword kept drawn after an Iai move played from another stance.
 #pragma once
 #include "../game_code.h"
 

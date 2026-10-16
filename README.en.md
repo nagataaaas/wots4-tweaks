@@ -15,7 +15,7 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
   - Real: Laura herself is waiting.
 - **Guaranteed Loot**: searching or kicking a body always gives an item on the first try, as long as the body has something to give. The odds of which item you get are unchanged. Items that townsfolk drop on their own when they die are not affected.
 - **Unlimited My Style**: when creating a My Style, you can add as many moves as you like, even without enough Ability Points. The "total / Ability Points" display is unchanged, so the total may appear to exceed your points. No Ability Points are spent.
-- **Mixed-Stance My Style**: when creating a My Style, a stance can also take moves of the other stances of the same weapon. The sword stances (Jo-dan, Chu-dan, Ge-dan, Waki, Iai, One-Handed and Shinobi) mix with each other, and so do the dual sword stances (Dual Arms and Shinobi Dual Arms).
+- **Mixed-Stance My Style**: when creating a My Style, a stance can also take moves of the other stances of the same weapon. The sword stances (Jo-dan, Chu-dan, Ge-dan, Waki, Iai, One-Handed and Shinobi) mix with each other, and so do the dual sword stances (Dual Arms and Shinobi Dual Arms). Iai moves taken into another stance do not sheathe the sword at their end.
   - The move select screen gets a "Switch Stance" button. It opens a list of the stances and shows the moves of the one you pick. The moves chosen on each stance stay chosen when you switch.
   - Combos link only moves of the same original stance.
   - The Ability Points total counts the moves chosen on every stance.

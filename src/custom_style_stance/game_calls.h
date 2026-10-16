@@ -82,4 +82,8 @@ void registerMotion(void* store, int slotKey, void* entry);
 // Releases the entries and their memory (0x44bea0).
 void freeMotionEntries(MotionEntries& entries);
 
+// The stance of the slot a character fights in, from its style (0x486050 on the character's
+// parameter), or -1.
+int slotStanceOf(void* parameter);
+
 }  // namespace tweaks::custom_style_stance

@@ -25,6 +25,7 @@ constexpr uint32_t comboMoveCount = 0x10;  // int (0x44b9b3)
 
 struct Character {
     static constexpr uint32_t motionStore = 0x4;     // Where motions are registered (0x44ba67)
+    static constexpr uint32_t parameter = 0xc;       // CharacterParameter (0x4987f0)
     static constexpr uint32_t motionStates = 0x15c;  // int per slot key k (0x44b977)
 };
 constexpr int motionsLoading = 1;
@@ -246,7 +247,104 @@ __declspec(naked) void recordMoveUnderItsStance() {
     }
 }
 
+// --- Sheathing ---------------------------------------------------------------------------------
+
+// Iai moves sheathe the sword near the end of their motions (MotionDatabase event 1, 0x4928b0,
+// whatever the stance), as the Iai stance holds it sheathed. Played from another stance's slot,
+// the sword went into the scabbard while the stance held its hands as if drawn; there the event
+// is skipped. Only the motions of Iai moves that no other stance's move uses are concerned: the
+// sheathe action (02_sheathe and the like) sends the same event.
+constexpr int sheatheEvent = 1;
+constexpr int iaiStance = 4;
+constexpr uint32_t skillMotion = 0x2;     // uint16 in SkillData, a MotionDatabase ID
+constexpr uint32_t motionRecordId = 0x0;  // uint16 in a MotionDatabase record (0x489de0)
+constexpr int motionLimit = 6000;         // Motion IDs stay below it: k x 6000 + ID keys a motion
+
+bool iaiOnlyMotion[motionLimit];
+bool iaiMotionsFound = false;
+
+// The motion of each move of the stance's combo, marked in `motions`.
+void markComboMotions(int stance, bool (&motions)[motionLimit]) {
+    void* combo = comboOf(stance);
+    const int count = field<int>(combo, comboMoveCount);
+    for (int index = 0; index < count; ++index) {
+        void* move = comboMoveAt(combo, index);
+        if (!move) break;
+        void* data = skillDataOf(field<int16_t>(move, ComboEntry::skill));
+        if (!data) continue;
+        const int motion = field<uint16_t>(data, skillMotion);
+        if (motion < motionLimit) motions[motion] = true;
+    }
+}
+
+bool findIaiOnlyMotions() {
+    for (int stance = 0; stance < stanceCount; ++stance) {
+        if (!comboOf(stance)) return false;  // Not loaded yet; looked for again next time
+    }
+    static bool otherStanceMotion[motionLimit];
+    for (int stance = 0; stance < stanceCount; ++stance) {
+        markComboMotions(stance, stance == iaiStance ? iaiOnlyMotion : otherStanceMotion);
+    }
+    for (int motion = 0; motion < motionLimit; ++motion) {
+        if (otherStanceMotion[motion]) iaiOnlyMotion[motion] = false;
+    }
+    return true;
+}
+
+bool isIaiOnlyMotion(int motion) {
+    if (motion >= motionLimit) return false;
+    if (!iaiMotionsFound) iaiMotionsFound = findIaiOnlyMotions();
+    return iaiMotionsFound && iaiOnlyMotion[motion];
+}
+
+bool __cdecl skipsMotionEvent(int event, void* character, void* motionRecord) {
+    if (event != sheatheEvent || !character || !motionRecord) return false;
+    if (!isIaiOnlyMotion(field<uint16_t>(motionRecord, motionRecordId))) return false;
+    void* parameter = field<void*>(character, Character::parameter);
+    if (!parameter) return false;
+    const int stance = slotStanceOf(parameter);
+    return stance != noStance && stance != iaiStance;
+}
+
+void* originalSendMotionEvent;  // The moved call to 0x490730, then back to 0x48eefc
+uintptr_t afterMotionEvent;     // Relocated 0x48eefc
+
+// In place of call 0x490730 at 0x48eef7, which runs the character's handler of a motion's event:
+// eax = the event, ecx = ebx = the character, esi = the motion's record. The FPU stack is empty
+// there, and the game keeps nothing in eax, ecx or edx past the call.
+__declspec(naked) void sendMotionEvent() {
+    __asm {
+        push eax
+        push ecx
+        push esi
+        push ecx
+        push eax
+        call skipsMotionEvent
+        add esp, 0xc
+        test al, al
+        pop ecx
+        pop eax
+        jnz skipped
+        jmp originalSendMotionEvent
+    skipped:
+        jmp afterMotionEvent
+    }
+}
+
 // --- Installing -------------------------------------------------------------------------------
+
+bool sheathingCodeMatches(const GameImage& game) {
+    const uint8_t motionRecord[] = {0x8b, 0x76, 0x28};          // 0x48ee58 mov esi,[esi+0x28]
+    const uint8_t eventType[] = {0x0f, 0xbf, 0x01};             // 0x48eee5 movsx eax,word [ecx]
+    const uint8_t eventCharacter[] = {0x8b, 0xcb};              // 0x48eeef mov ecx,ebx
+    const uint8_t eventHandlers[] = {0xff, 0x24, 0x85};         // 0x490730 jmp [eax*4+table]
+    const uint8_t slotStance[] = {0x53, 0x56, 0x57, 0x8b, 0xf8};  // 0x486050 push ebx,esi,edi; mov edi,eax
+    return game.codeIs(0x48ee58, motionRecord, sizeof(motionRecord)) &&
+           game.codeIs(0x48eee5, eventType, sizeof(eventType)) &&
+           game.codeIs(0x48eeef, eventCharacter, sizeof(eventCharacter)) &&
+           game.callsTo(0x48eef7, 0x490730) && game.codeIs(0x490730, eventHandlers, sizeof(eventHandlers)) &&
+           game.operandIs(0x490733, 0x490974) && game.codeIs(0x486050, slotStance, sizeof(slotStance));
+}
 
 // The code this part relies on, as in the Steam version (PE time stamp 683d42eb).
 bool codeMatches(const GameImage& game) {
@@ -267,7 +365,7 @@ bool codeMatches(const GameImage& game) {
            game.callsTo(0x44b9cb, 0x597a60) && game.callsTo(0x44b9dd, 0x5980a0) &&
            game.callsTo(0x44b9f0, 0x44bb90) && game.callsTo(0x44ba49, 0x44bc50) &&
            game.callsTo(0x44ba70, 0x454c70) && game.callsTo(0x44b9a7, 0x44bea0) &&
-           game.callsTo(0x59a173, 0x599170) && game.callsTo(0x59a516, 0x598400);
+           game.callsTo(0x59a173, 0x599170) && game.callsTo(0x59a516, 0x598400) && sheathingCodeMatches(game);
 }
 
 struct MixedStyleHook {
@@ -278,6 +376,7 @@ struct MixedStyleHook {
 const MixedStyleHook hooks[] = {
     {0x44b8b0, reinterpret_cast<void*>(&registerMotionsWithOthers), &originalRegisterMotions},
     {0x598400, reinterpret_cast<void*>(&recordMoveUnderItsStance), &originalRecordMove},
+    {0x48eef7, reinterpret_cast<void*>(&sendMotionEvent), &originalSendMotionEvent},
 };
 
 }  // namespace
@@ -288,6 +387,7 @@ bool installMixedStyle(const wots4::ModContext& context, const GameImage& game, 
         return false;
     }
     for (int stance = 0; stance < stanceCount; ++stance) stanceTables[stance].stance = static_cast<int16_t>(stance);
+    afterMotionEvent = game.address(0x48eefc);
     constexpr uint32_t hookLength = 5;
     for (size_t index = 0; index < _countof(hooks); ++index) {
         CodeChangeError error =

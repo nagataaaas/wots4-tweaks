@@ -583,6 +583,56 @@ void recordWithGame(void* saveData, void* table, int number, int state) {
     }
 }
 
+// --- Created styles: the sheathe event of Iai moves ---
+
+constexpr uintptr_t sendMotionEvent = 0x48eef7;      // Hooked; the call moved with the hook runs the handlers
+constexpr uintptr_t afterMotionEvent = 0x48eefc;     // Made a ret while an event is sent
+constexpr uintptr_t motionEventHandlers = 0x490730;  // eax = event, ecx = character
+constexpr uintptr_t slotStanceOf = 0x486050;         // eax = parameter
+constexpr int sheatheEvent = 1, drawEvent = 0;
+
+int handledEvents, lastHandledEvent;
+void* lastHandledCharacter;
+__declspec(naked) void fakeEventHandlers() {
+    __asm {
+        inc handledEvents
+        mov lastHandledEvent, eax
+        mov lastHandledCharacter, ecx
+        ret
+    }
+}
+
+int slotStance;
+__declspec(naked) void fakeSlotStanceOf() {
+    __asm {
+        mov eax, slotStance
+        ret
+    }
+}
+
+// Sends the event as the event loop of 0x48edc0 does: eax = event, ecx = ebx = character,
+// esi = motion record.
+// True when the character's handlers got it.
+bool sendEvent(int event, void* character, void* motionRecord) {
+    const uint8_t savedByte = codeByte(afterMotionEvent);
+    codeByte(afterMotionEvent) = returnOpcode;
+    const int handledBefore = handledEvents;
+    const uintptr_t site = va(sendMotionEvent);
+    __asm {
+        push ebx
+        push esi
+        mov eax, event
+        mov ecx, character
+        mov ebx, ecx
+        mov esi, motionRecord
+        call site
+        pop esi
+        pop ebx
+    }
+    codeByte(afterMotionEvent) = savedByte;
+    return handledEvents == handledBefore + 1 && lastHandledEvent == event && lastHandledCharacter == character;
+}
+
 using TopCheck = bool(__stdcall*)(void*);
 using ChartCardCall = void(__stdcall*)(void*, void*);
 using ChartCall = void(__stdcall*)(void*);
@@ -612,7 +662,8 @@ int main(int argc, char** argv) {
     check(claimed(0x5c9ff7, 6) && claimed(0x5cb832, 6) && claimed(0x5d3660, 5) && claimed(0x5d3c00, 5) &&
               claimed(0x5d3ab0, 5) && claimed(letGoCard, 5) && claimed(resetChart, 5),
         "the rules' two patches and five hooks are claimed");
-    check(claimed(registerMotions, 5) && claimed(recordMove, 5), "the created styles' two hooks are claimed");
+    check(claimed(registerMotions, 5) && claimed(recordMove, 5) && claimed(sendMotionEvent, 5),
+        "the created styles' three hooks are claimed");
     const uint32_t item = optionIndex(L"Mixed-Stance My Style");
     check(item != noItem && std::wstring(optionItem(item).label.japanese) == L"俺流構え混合",
         "an on / off option is passed in both languages");
@@ -1014,6 +1065,32 @@ int main(int argc, char** argv) {
     recordWithGame(saveData, style, 4, 1);
     check(record(1, 4) == 1, "a stance's table records as the game does");
     style[2] = 2;
+
+    // Iai's moves 400 (motion 845, Iai's own) and 420 (motion 900, which Ge-dan's C uses too).
+    jumpTo(motionEventHandlers, &fakeEventHandlers);
+    jumpTo(slotStanceOf, &fakeSlotStanceOf);
+    FakeEntry iaiOwn = {0, 400}, iaiShared = {1, 420};
+    comboMoves[combos[4]] = {&iaiOwn, &iaiShared};
+    at<int>(combos[4], 0x10) = 2;
+    at<uint16_t>(skillDataPool, 400 + 2) = 845;
+    at<uint16_t>(skillDataPool, 420 + 2) = 900;
+    at<uint16_t>(skillDataPool, 200 + 2) = 900;
+    static uint8_t fighter[0x10] = {};
+    static uint8_t parameter[0x10] = {};
+    at<void*>(fighter, 0xc) = parameter;
+    static uint8_t iaiMotion[0x10] = {}, sharedMotion[0x10] = {}, sheatheMotion[0x10] = {};
+    at<uint16_t>(iaiMotion, 0) = 845;
+    at<uint16_t>(sharedMotion, 0) = 900;
+    at<uint16_t>(sheatheMotion, 0) = 352;  // 02_sheathe
+    slotStance = 1;
+    check(!sendEvent(sheatheEvent, fighter, iaiMotion), "an Iai move played from Chu-dan does not sheathe the sword");
+    check(sendEvent(drawEvent, fighter, iaiMotion), "its draw event still reaches the character");
+    check(sendEvent(sheatheEvent, fighter, sharedMotion), "a motion another stance's move uses too still sheathes");
+    check(sendEvent(sheatheEvent, fighter, sheatheMotion), "the sheathe action still sheathes");
+    slotStance = 4;
+    check(sendEvent(sheatheEvent, fighter, iaiMotion), "an Iai move played from Iai sheathes as in the game");
+    slotStance = -1;
+    check(sendEvent(sheatheEvent, fighter, iaiMotion), "a character without a slot's stance is left to the game");
 
     at<void*>(shared, sharedCharts + 4) = nullptr;
     at<void*>(shared, sharedCharts + 8) = nullptr;
