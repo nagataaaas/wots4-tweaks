@@ -2,6 +2,10 @@
 
 [English](CHANGELOG.en.md)
 
+## [v2026.10.19](https://github.com/nagataaaas/wots4-tweaks/releases/tag/v2026.10.19)
+
+- ModLoader v2026.10.19 に合わせてビルドし直しました。機能の変更はありません。
+
 ## [v2026.10.18](https://github.com/nagataaaas/wots4-tweaks/releases/tag/v2026.10.18)
 
 - 戦闘の調整を追加しました：雑魚の湧く間隔・雑魚の同時出現数アップ・雑魚の候補数・ドロップ品の上限・倒した雑魚の片付け
