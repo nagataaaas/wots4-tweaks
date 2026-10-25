@@ -4,6 +4,7 @@
 // style under numbers the slot's stance does not use (stance_rules.h). Their motions and records
 // follow them (mixed_style.h).
 #include "custom_style_stance.h"
+#include "common_chart.h"
 #include "../game_code.h"
 #include "game_calls.h"
 #include "mixed_style.h"
@@ -25,6 +26,8 @@ bool install(const wots4::ModContext& context) {
     game = GameImage(context.game);
     logger.attach(context);
     setUpGameCalls(game);
+    // Patches only, nothing hooked: first, so that nothing is to be undone when it fails.
+    if (!installCommonChart(context, game, logger)) return false;
     // Works whether the option is on or off: a style made with it keeps its moves playable.
     if (!installMixedStyle(context, game, logger)) return false;
     if (!installStanceRules(context, game, logger)) {
@@ -44,6 +47,7 @@ void applied(uint32_t value) {
     if (!installed) return;
     setStanceRulesEnabled(value == toggleOn, logger);
     setStanceMenuEnabled(value == toggleOn, logger);
+    setCommonChartEnabled(value == toggleOn, logger);
 }
 
 // 俺流 is "My Style" and 構え is "Stance" in the game's menus.

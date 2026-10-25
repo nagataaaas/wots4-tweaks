@@ -62,7 +62,7 @@ Clash clashWithCharts(void* card, const StanceChart* charts, int count) {
 int __cdecl pointsOfOtherCharts(void* shared) {
     int points = 0;
     for (int slot = 0; slot < slotCount; ++slot) {
-        StanceChart charts[stanceCount];
+        StanceChart charts[chartKindCount];
         const int count = chartsOfSlot(shared, slot, charts);
         void* counted = field<void*>(shared, SharedData::slotCharts + slot * sizeof(void*));
         for (int index = 0; index < count; ++index) {
@@ -100,7 +100,7 @@ void writeClashMessage(wchar_t* message, const Clash& clash) {
     const wchar_t* text = findUiText(host, clash.text);
     if (!text) return;
     wcsncpy_s(message, messageLength, text, _TRUNCATE);
-    const wchar_t* name = stanceName(clash.stance);
+    const wchar_t* name = chartName(clash.stance);
     if (!name || name[0] == 0) return;
     wchar_t stance[messageLength];
     const bool japanese = name[0] >= firstJapaneseCharacter;
@@ -130,7 +130,7 @@ void __cdecl refuseClashingCard(wchar_t* message) {
     const int state = field<int>(card, Card::state);
     if (state == cardFree && message[0] != 0) return;
     if (state != cardFree && !(state == cardDisabled && canBeTaken(card))) return;
-    StanceChart others[stanceCount];
+    StanceChart others[chartKindCount];
     int slotStance;
     const int count = chartsBesides(chart, others, slotStance);
     if (count == 0) return;
@@ -158,7 +158,7 @@ __declspec(naked) void checkCardBeforeChoosing() {
 
 void dimTakenCards(void* chart) {
     if (!chart) return;
-    StanceChart others[stanceCount];
+    StanceChart others[chartKindCount];
     int slotStance;
     const int count = chartsBesides(chart, others, slotStance);
     if (count == 0) return;
@@ -200,7 +200,7 @@ void* sharedOfTop(void* topScreen) {
 }
 
 bool slotHasAttack(void* shared, int slot) {
-    StanceChart charts[stanceCount];
+    StanceChart charts[chartKindCount];
     const int count = chartsOfSlot(shared, slot, charts);
     if (count == 0) return true;  // As 0x5d3c37: a slot without a chart is not checked
     bool attack = false;
@@ -226,7 +226,7 @@ bool __stdcall everySlotHasAttack(void* topScreen) {
 // chosen on another chart. The style is refused as the move select would refuse the card.
 uint32_t clashInStyle(void* shared) {
     for (int slot = 0; slot < slotCount; ++slot) {
-        StanceChart charts[stanceCount];
+        StanceChart charts[chartKindCount];
         const int count = chartsOfSlot(shared, slot, charts);
         for (int index = 0; index + 1 < count; ++index) {
             uint32_t clash = noClash;
@@ -273,11 +273,26 @@ struct NumberPlan {
     }
 };
 
+constexpr uint32_t comboMoveCount = 0x10;  // int (0x44b9b3)
+
+// The number of the stance's move with the SkillData, or noNumber.
+int numberOfSkill(void* combo, int skill) {
+    const int count = field<int>(combo, comboMoveCount);
+    for (int index = 0; index < count; ++index) {
+        void* move = comboMoveAt(combo, index);
+        if (!move) break;
+        if (field<int16_t>(move, ComboEntry::skill) == skill) return field<int16_t>(move, ComboEntry::number);
+    }
+    return noNumber;
+}
+
 // Returns how many moves were added.
-int addMovesOfChart(void* table, void* chart, NumberPlan& numbers) {
+int addMovesOfChart(void* table, void* chart, void* slotCombo, NumberPlan& numbers) {
     int added = 0;
     // The chart's chosen moves get numbers that the slot's stance does not use; links between
-    // them follow, links to other stances' moves do not exist.
+    // them follow, links to other stances' moves do not exist. A move of the slot's stance
+    // itself (one of the common chart) keeps its number: its card on the slot's chart cannot be
+    // chosen along with it (744).
     int16_t renumbered[numberCount];
     for (int16_t& number : renumbered) number = noNumber;
     forEachCard(chart, [&](void* card) {
@@ -285,6 +300,11 @@ int addMovesOfChart(void* table, void* chart, NumberPlan& numbers) {
         if (!isChosen(card) || !entry) return;
         const int number = field<int16_t>(entry, ComboEntry::number);
         if (number < 0 || number >= numberCount || renumbered[number] != noNumber) return;
+        const int own = numberOfSkill(slotCombo, field<int16_t>(entry, ComboEntry::skill));
+        if (own >= 0 && own < numberCount) {
+            renumbered[number] = static_cast<int16_t>(own);
+            return;
+        }
         const int free = numbers.take();
         if (free == noNumber) {
             ++numbers.skipped;
@@ -318,7 +338,7 @@ int addMovesOfChart(void* table, void* chart, NumberPlan& numbers) {
 // After the game put the chosen moves of the slot's chart into the slot's table (0x5d3660,
 // before the table's stance is written at 0x5d34b5), puts in those of the slot's other charts.
 bool __cdecl addMovesOfOtherCharts(void* table, void* chart) {
-    StanceChart others[stanceCount];
+    StanceChart others[chartKindCount];
     int slotStance;
     const int count = chartsBesides(chart, others, slotStance);
     if (count == 0) return false;
@@ -327,7 +347,7 @@ bool __cdecl addMovesOfOtherCharts(void* table, void* chart) {
     NumberPlan numbers;
     for (int number = 0; number < numberCount; ++number) numbers.taken[number] = comboHasNumber(combo, number);
     int added = 0;
-    for (int index = 0; index < count; ++index) added += addMovesOfChart(table, others[index].chart, numbers);
+    for (int index = 0; index < count; ++index) added += addMovesOfChart(table, others[index].chart, combo, numbers);
     if (numbers.skipped > 0 && logger) {
         logger->write("WARN", "a stance has no free move number left; some moves of its other stances were left out.");
     }

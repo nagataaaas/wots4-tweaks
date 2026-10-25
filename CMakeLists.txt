@@ -25,6 +25,7 @@ set(TWEAKS_TWEAK_SOURCES
     src/laura_yobai/laura_yobai.cpp
     src/loot_drop/loot_drop.cpp
     src/custom_style_limit/custom_style_limit.cpp
+    src/custom_style_stance/common_chart.cpp
     src/custom_style_stance/custom_style_stance.cpp
     src/custom_style_stance/game_calls.cpp
     src/custom_style_stance/mixed_style.cpp

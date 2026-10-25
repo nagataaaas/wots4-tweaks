@@ -205,10 +205,8 @@ bool menuForcedToLeave() {
     return holder && holder[menuLeaveFlag];
 }
 
-// The list of stances lists the group's stances in order, then Quit.
-constexpr uint32_t uiTexts = 5;
-constexpr uint32_t firstStanceText = 112;  // UI 112.. are the stance names, by stance (0x6861b0)
-constexpr uint32_t quitText = 59;          // やめる / Quit
+// The list of stances lists the group's stances in order, the common chart, then Quit.
+constexpr uint32_t quitText = 59;  // やめる / Quit
 StanceChoice listedStances;
 
 void playStanceButtonAtOnce(void* screen, bool chosen) {
@@ -226,20 +224,23 @@ void __fastcall stanceListInput(void* screen, void*, uint32_t, uint32_t) {
     window = nullptr;
     field<uintptr_t>(screen, MoveSelectScreen::inputStep) = gameMenuInput;
     playStanceButtonAtOnce(screen, true);
-    const int stance = listedStances.first + chosen;
-    if (chosen >= 0 && stance <= listedStances.last) showStance(screen, stance);
+    if (chosen >= 0 && chosen < listedStances.count) showStance(screen, listedStances.charts[chosen]);
 }
 
 void openStanceList(void* screen) {
     StanceChoice choice;
     if (!stanceChoiceOf(screen, choice)) return;
-    GameTextReference choices[largestGroupSize + 1];
+    const wchar_t* choices[largestGroupSize + 2];
     int count = 0;
-    for (int stance = choice.first; stance <= choice.last; ++stance) {
-        choices[count++] = {uiTexts, firstStanceText + stance};
+    for (int place = 0; place < choice.count; ++place) {
+        const wchar_t* name = chartName(choice.charts[place]);
+        if (!name) return;
+        choices[count++] = name;
     }
-    choices[count++] = {uiTexts, quitText};
-    void* window = openChoiceWindow(choices, count, choice.shown - choice.first);
+    const wchar_t* quit = findUiText(host, quitText);
+    if (!quit) quit = stanceButtonLabel == japaneseLabel ? L"やめる" : L"Quit";  // A ModLoader too old to find it
+    choices[count++] = quit;
+    void* window = openTextChoiceWindow(choices, count, choice.shown);
     if (!window) return;
     listedStances = choice;
     field<void*>(screen, MoveSelectScreen::choiceWindow) = window;
@@ -332,7 +333,10 @@ bool choiceWindowMatches(const GameImage& game) {
     const uint8_t choicesOnly[] = {0xc7, 0x45, 0xd0, 0x02, 0x00, 0x00, 0x00};                          // 0x5cbdc7
     const uint8_t waitsForClosed[] = {0x83, 0x7f, 0x38, 0x04};                                          // 0x5cba9c
     const uint8_t chosenChoice[] = {0x8b, 0x87, 0xa0, 0x00, 0x00, 0x00};                                // 0x5be370
-    return game.codeIs(0x5cbd90, windowOfHolder, sizeof(windowOfHolder)) && game.operandIs(0x5cbd69, 0x9ebb8c) &&
+    // The window's filling adds a choice: mov edi,[esp+0x14] (window); push edx; mov edx,1 (list)
+    const uint8_t addChoice[] = {0x8b, 0x7c, 0x24, 0x14, 0x52, 0xba, 0x01, 0x00, 0x00, 0x00};  // 0x5be5ed
+    return game.codeIs(0x5be5ed, addChoice, sizeof(addChoice)) && game.callsTo(0x5be5f7, 0x5bdb20) &&
+           game.codeIs(0x5cbd90, windowOfHolder, sizeof(windowOfHolder)) && game.operandIs(0x5cbd69, 0x9ebb8c) &&
            game.codeIs(0x5cbdc7, choicesOnly, sizeof(choicesOnly)) &&
            game.codeIs(0x5cba9c, waitsForClosed, sizeof(waitsForClosed)) &&
            game.codeIs(0x5be370, chosenChoice, sizeof(chosenChoice)) && game.callsTo(0x5cbe52, 0x5bda60) &&

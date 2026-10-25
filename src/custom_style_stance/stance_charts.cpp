@@ -1,5 +1,6 @@
 #include "stance_charts.h"
 #include <cstring>
+#include "common_chart.h"
 #include "game_calls.h"
 #include "my_style_screen.h"
 #include "stance_rules.h"
@@ -27,7 +28,7 @@ struct SlotCharts {
     int16_t slotStance = noStance;  // The stance the charts were made for
     int16_t shownStance = noStance;
     void* gameChart = nullptr;       // The game's chart of the slot, put back when leaving the menu
-    void* charts[stanceCount] = {};  // Ours; the slot's own stance has none
+    void* charts[chartKindCount] = {};  // Ours; the slot's own stance has none
 };
 
 void* knownShared = nullptr;  // The shared data the slots below belong to
@@ -56,12 +57,13 @@ void*& slotChart(void* shared, int slot) {
     return field<void*>(shared, SharedData::slotCharts + slot * sizeof(void*));
 }
 
-void deleteOurCharts(SlotCharts& charts) {
+void deleteOurCharts(SlotCharts& charts, int slot) {
     for (void*& chart : charts.charts) {
         if (!chart) continue;
         deleteChart(chart);
         chart = nullptr;
     }
+    forgetCommonChart(slot);
 }
 
 // The charts of the edited slot, emptied when the shared data or the slot's stance changed.
@@ -79,7 +81,7 @@ SlotCharts* chartsOfEditedSlot(void* screen) {
     SlotCharts& charts = slots[slot];
     const int16_t stance = slotStance(shared, slot);
     if (charts.slotStance != stance || !charts.gameChart) {
-        deleteOurCharts(charts);
+        deleteOurCharts(charts, slot);
         charts.slotStance = stance;
         charts.shownStance = stance;
         charts.gameChart = slotChart(shared, slot);
@@ -89,23 +91,30 @@ SlotCharts* chartsOfEditedSlot(void* screen) {
 
 void setStanceTitle(void* screen, int stance) {
     wchar_t* title = &field<wchar_t>(screen, MoveSelectScreen::stanceTitle);
-    const wchar_t* name = stanceName(stance);
+    const wchar_t* name = chartName(stance);
     if (!name) return;
     wcsncpy_s(title, stanceTitleLength, name, _TRUNCATE);
 }
 
-// Our chart of the stance, made and filled the first time it is shown. The game fills a chart
-// for the edited slot's stance (0x5cbef0), so the slot's stance is set to the chart's for that.
-void* chartOf(void* screen, SlotCharts& charts, int stance) {
-    void*& chart = charts.charts[stance];
+// Our chart of the stance or the common one, made and filled the first time it is shown. The
+// game fills a chart for the edited slot's stance (0x5cbef0), so the slot's stance is set to
+// the chart's for that; the common chart keeps the slot's stance and fills from its own combo.
+void* chartOf(void* screen, SlotCharts& charts, int chartKind) {
+    void*& chart = charts.charts[chartKind];
     if (chart) return chart;
     chart = newChart();
     if (!chart) return nullptr;
     void* shared = sharedOf(screen);
-    int16_t& stanceOfSlot = slotStance(shared, editedSlot(shared));
+    const int slot = editedSlot(shared);
+    if (chartKind == commonChart && !prepareCommonChart(chart, slot, charts.slotStance)) {
+        deleteChart(chart);
+        chart = nullptr;
+        return nullptr;
+    }
+    int16_t& stanceOfSlot = slotStance(shared, slot);
     void*& shownChart = field<void*>(screen, MoveSelectScreen::shownChart);
     void* const gameChart = shownChart;
-    stanceOfSlot = static_cast<int16_t>(stance);
+    stanceOfSlot = static_cast<int16_t>(chartKind == commonChart ? charts.slotStance : chartKind);
     shownChart = chart;
     buildShownChart(screen);
     stanceOfSlot = charts.slotStance;
@@ -127,22 +136,32 @@ void show(void* screen, void* chart, int stance) {
 
 bool stanceChoiceOf(void* screen, StanceChoice& choice) {
     SlotCharts* charts = chartsOfEditedSlot(screen);
-    if (!charts) return false;
+    if (!charts || charts->slotStance < 0 || charts->slotStance >= stanceCount) return false;
+    choice.count = 0;
     const WeaponGroup* group = groupOf(charts->slotStance);
-    if (!group) return false;
-    choice = {group->first, group->last, charts->shownStance};
+    const WeaponGroup alone = {charts->slotStance, charts->slotStance};
+    if (!group) group = &alone;
+    for (int stance = group->first; stance <= group->last; ++stance) choice.charts[choice.count++] = stance;
+    choice.charts[choice.count++] = commonChart;
+    choice.shown = 0;
+    for (int place = 0; place < choice.count; ++place) {
+        if (choice.charts[place] == charts->shownStance) choice.shown = place;
+    }
     return true;
 }
 
-void showStance(void* screen, int stance) {
+void showStance(void* screen, int chartKind) {
     SlotCharts* charts = chartsOfEditedSlot(screen);
-    if (!charts || stance == charts->shownStance) return;
-    const WeaponGroup* group = groupOf(charts->slotStance);
-    if (!group || stance < group->first || stance > group->last) return;
-    void* chart = stance == charts->slotStance ? charts->gameChart : chartOf(screen, *charts, stance);
+    if (!charts || chartKind == charts->shownStance) return;
+    StanceChoice choice;
+    if (!stanceChoiceOf(screen, choice)) return;
+    bool listed = false;
+    for (int place = 0; place < choice.count; ++place) listed = listed || choice.charts[place] == chartKind;
+    if (!listed) return;
+    void* chart = chartKind == charts->slotStance ? charts->gameChart : chartOf(screen, *charts, chartKind);
     if (!chart) return;
-    charts->shownStance = static_cast<int16_t>(stance);
-    show(screen, chart, stance);
+    charts->shownStance = static_cast<int16_t>(chartKind);
+    show(screen, chart, chartKind);
 }
 
 void showGameChart(void* screen) {
@@ -156,7 +175,7 @@ void showGameChart(void* screen) {
     charts->shownStance = charts->slotStance;
 }
 
-int chartsOfSlot(void* shared, int slot, StanceChart (&charts)[stanceCount]) {
+int chartsOfSlot(void* shared, int slot, StanceChart (&charts)[chartKindCount]) {
     if (!shared || slot < 0 || slot >= slotCount) return 0;
     const int stance = slotStance(shared, slot);
     if (stance == noStance) return 0;
@@ -167,16 +186,16 @@ int chartsOfSlot(void* shared, int slot, StanceChart (&charts)[stanceCount]) {
     int count = 0;
     charts[count++] = {gameChart, stance};
     if (!oursAreCurrent) return count;
-    for (int other = 0; other < stanceCount; ++other) {
+    for (int other = 0; other < chartKindCount; ++other) {
         if (ours.charts[other]) charts[count++] = {ours.charts[other], other};
     }
     return count;
 }
 
-int chartsBesides(void* chart, StanceChart (&others)[stanceCount], int& stanceOfSlot) {
+int chartsBesides(void* chart, StanceChart (&others)[chartKindCount], int& stanceOfSlot) {
     if (!chart || !knownShared) return 0;
     for (int slot = 0; slot < slotCount; ++slot) {
-        StanceChart charts[stanceCount];
+        StanceChart charts[chartKindCount];
         const int count = chartsOfSlot(knownShared, slot, charts);
         bool found = false;
         int otherCount = 0;
@@ -200,9 +219,13 @@ void releaseCharts(void* shared) {
     for (int slot = 0; slot < slotCount; ++slot) {
         SlotCharts& charts = slots[slot];
         if (charts.gameChart) slotChart(shared, slot) = charts.gameChart;
-        deleteOurCharts(charts);
+        deleteOurCharts(charts, slot);
         charts = SlotCharts();
     }
+}
+
+const wchar_t* chartName(int chartKind) {
+    return chartKind == commonChart ? commonChartName() : stanceName(chartKind);
 }
 
 }  // namespace tweaks::custom_style_stance

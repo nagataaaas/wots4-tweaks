@@ -40,6 +40,8 @@ struct GameTextReference {
 void* openChoiceWindow(const GameTextReference* choices, int count, int cursor);
 // Opens the same window with a message, as the style's confirmation does (0x5d3b67).
 void* openMessageWindow(GameTextReference message);
+// Opens the choice window with texts that are no game texts (0x5bdb20 copies each).
+void* openTextChoiceWindow(const wchar_t* const* choices, int count, int cursor);
 
 // A stance's SkillComboData ([[[0x9ebb14]]] + 36 x stance), or null.
 void* comboOf(int stance);

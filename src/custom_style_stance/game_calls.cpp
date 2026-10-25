@@ -46,6 +46,7 @@ const uintptr_t* choiceWindowHolder;  // Relocated 0x9ebb8c
 ClearChoiceWindow clearChoiceWindow;
 uintptr_t fillChoiceWindowAddress;
 uintptr_t showChoiceWindowAddress;
+uintptr_t addChoiceTextAddress;
 
 constexpr uint32_t comboSize = 36;
 // The combo's tree: the combo itself is the head, +4 the root; a node has +8 the side with keys
@@ -70,11 +71,13 @@ using SkillLookup = int(__cdecl*)(int skill);
 SkillLookup defenceIndexOf;
 SkillLookup defenceTypeOf;
 
-void* openWindow(uint32_t kind, const GameTextReference* texts, int count, int cursor) {
+void* choiceWindow() {
     const uintptr_t holder = *choiceWindowHolder;
     if (!holder) return nullptr;
-    void* window = *reinterpret_cast<void* const*>(holder + choiceWindowOffset);
-    if (!window) return nullptr;
+    return *reinterpret_cast<void* const*>(holder + choiceWindowOffset);
+}
+
+void fillWindow(void* window, uint32_t kind, const GameTextReference* texts, int count, int cursor) {
     ChoiceWindowSettings settings = {
         kind, 0.0f, gameChoiceFlag, static_cast<int8_t>(cursor), texts, texts + count, texts + count};
     ChoiceWindowSettings* settingsAddress = &settings;
@@ -83,10 +86,39 @@ void* openWindow(uint32_t kind, const GameTextReference* texts, int count, int c
         mov ecx, window  // ecx = window, edx = settings
         mov edx, settingsAddress
         call fillChoiceWindowAddress
-        mov eax, window  // eax = window
+    }
+}
+
+// eax = window
+void showWindow(void* window) {
+    __asm {
+        mov eax, window
         call showChoiceWindowAddress
     }
+}
+
+void* openWindow(uint32_t kind, const GameTextReference* texts, int count, int cursor) {
+    void* window = choiceWindow();
+    if (!window) return nullptr;
+    fillWindow(window, kind, texts, count, cursor);
+    showWindow(window);
     return window;
+}
+
+// The window's list of choices, as 0x5be5f2 adds to it, and the flag each choice is given.
+enum AddChoiceConstant : uint32_t { choiceList = 1, addedChoiceFlag = gameChoiceFlag };
+
+// ecx = text (copied), edx = the list, edi = window; the choice's flag on the stack (ret 4)
+void addChoiceText(void* window, const wchar_t* text) {
+    __asm {
+        push edi
+        push addedChoiceFlag
+        mov ecx, text
+        mov edx, choiceList
+        mov edi, window
+        call addChoiceTextAddress
+        pop edi
+    }
 }
 
 }  // namespace
@@ -105,6 +137,7 @@ void setUpGameCalls(const GameImage& game) {
     clearChoiceWindow = reinterpret_cast<ClearChoiceWindow>(game.address(0x5bda60));
     fillChoiceWindowAddress = game.address(0x5be410);
     showChoiceWindowAddress = game.address(0x5bddf0);
+    addChoiceTextAddress = game.address(0x5bdb20);
     comboHolder = reinterpret_cast<const uintptr_t*>(game.address(0x9ebb14));
     addMoveAddress = game.address(0x598df0);
     rebuildFirstMovesAddress = game.address(0x599430);
@@ -212,6 +245,17 @@ void* openChoiceWindow(const GameTextReference* choices, int count, int cursor) 
 
 void* openMessageWindow(GameTextReference message) {
     return openWindow(messageOnly, &message, 1, 0);
+}
+
+// The window is filled with no game text, then each text is added as the game adds a game
+// text's (0x5be5f7).
+void* openTextChoiceWindow(const wchar_t* const* choices, int count, int cursor) {
+    void* window = choiceWindow();
+    if (!window) return nullptr;
+    fillWindow(window, choicesOnly, nullptr, 0, cursor);
+    for (int index = 0; index < count; ++index) addChoiceText(window, choices[index]);
+    showWindow(window);
+    return window;
 }
 
 void* comboOf(int stance) {

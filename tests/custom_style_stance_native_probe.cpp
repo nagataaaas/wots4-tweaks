@@ -44,6 +44,7 @@ constexpr uintptr_t freeImport = 0x9052c0;
 constexpr uintptr_t clearChoiceWindow = 0x5bda60;
 constexpr uintptr_t fillChoiceWindow = 0x5be410;
 constexpr uintptr_t showChoiceWindow = 0x5bddf0;
+constexpr uintptr_t addChoice = 0x5bdb20;
 constexpr uintptr_t choiceWindowHolder = 0x9ebb8c;  // [[0x9ebb8c]+0x70] is the window
 // Game globals the menu reads
 constexpr uintptr_t decideKeys = 0x9db500;
@@ -115,7 +116,18 @@ void* __fastcall fakeDeleteChart(void* chart, void*, uint32_t) {
     noteChartDeleted(chart);
     return chart;
 }
-void* fakeChartMethods[1] = {reinterpret_cast<void*>(&fakeDeleteChart)};
+// The fill method (+4): what the chart was filled from.
+void* filledChart;
+void* filledCombo;
+int* filledStance;
+void __fastcall fakeFillChart(void* chart, void*, void* combo, int* stance) {
+    filledChart = chart;
+    filledCombo = combo;
+    filledStance = stance;
+}
+// SkillChartChoice's vtable: the slot before the methods, then its 5 methods.
+void* fakeChartVtable[6] = {nullptr, reinterpret_cast<void*>(&fakeDeleteChart), reinterpret_cast<void*>(&fakeFillChart)};
+void** const fakeChartMethods = fakeChartVtable + 1;
 void* __stdcall fakeConstructChart(void* memory) {
     std::memset(memory, 0, 0x9c);
     *static_cast<void***>(memory) = fakeChartMethods;
@@ -161,10 +173,12 @@ std::vector<std::pair<uint32_t, uint32_t>> filledChoices;
 void __stdcall fakeClearChoiceWindow(void*) {
     ++windowsCleared;
 }
+std::vector<std::wstring> addedChoices;  // Texts added to the window after it was filled
 void __cdecl noteFill(void* window, const uint8_t* settings) {
     filledKind = *reinterpret_cast<const uint32_t*>(settings);
     filledCursor = static_cast<int8_t>(settings[0xc]);
     filledChoices.clear();
+    addedChoices.clear();
     const auto* choice = *reinterpret_cast<const uint32_t* const*>(settings + 0x10);
     const auto* end = *reinterpret_cast<const uint32_t* const*>(settings + 0x14);
     for (; choice < end; choice += 2) filledChoices.emplace_back(choice[0], choice[1]);
@@ -177,6 +191,22 @@ __declspec(naked) void fakeFillChoiceWindow() {  // ecx = window, edx = settings
         call noteFill
         add esp, 8
         ret
+    }
+}
+bool choiceAddedRight = true;
+void __cdecl noteChoice(const wchar_t* text, uint32_t list, const void* window, uint32_t flag) {
+    addedChoices.push_back(text ? text : L"(null)");
+    choiceAddedRight = choiceAddedRight && list == 1 && window == fakeWindow && flag == 1;
+}
+__declspec(naked) void fakeAddChoice() {  // ecx = text, edx = list, edi = window; flag on the stack (ret 4)
+    __asm {
+        push dword ptr [esp + 4]
+        push edi
+        push edx
+        push ecx
+        call noteChoice
+        add esp, 0x10
+        ret 4
     }
 }
 __declspec(naked) void fakeShowChoiceWindow() {  // eax = window
@@ -255,6 +285,15 @@ void chooseFromList(void* screen, int chosen) {
     step(screen);
 }
 
+bool listedNames(std::initializer_list<const wchar_t*> names) {
+    if (!choiceAddedRight || !filledChoices.empty() || addedChoices.size() != names.size()) return false;
+    size_t index = 0;
+    for (const wchar_t* name : names) {
+        if (addedChoices[index++] != name) return false;
+    }
+    return true;
+}
+
 bool listedTexts(std::initializer_list<uint32_t> numbers) {
     if (filledChoices.size() != numbers.size()) return false;
     size_t index = 0;
@@ -310,11 +349,14 @@ void setCards(void* chart, std::vector<FakeCard*>& cards) {
     at<FakeCard**>(chart, 8) = cards.data() + cards.size();
 }
 
-// Defence moves: SkillData 300 and 301, both of type 1, and 302 of type 2.
+// Defence moves: SkillData 300 and 301, both of type 1, and 302 of type 2. For the common chart:
+// Toughen of Chu-dan (500) and of Jo-dan (510), the Waki parry (520), Renki Koho of Chu-dan (530)
+// and of Jo-dan (540, which works in Jo-dan only), the gun parry (550, of type 1), a Kata (560).
 struct FakeDefence {
     int skill, index, type;
 };
-const FakeDefence fakeDefences[] = {{300, 0, 1}, {301, 1, 1}, {302, 3, 2}};
+const FakeDefence fakeDefences[] = {{300, 0, 1}, {301, 1, 1}, {302, 3, 2}, {500, 36, 12}, {510, 36, 12},
+    {520, 9, 3}, {530, 47, 17}, {540, 44, 16}, {550, 27, 1}, {560, 85, 25}};
 const FakeDefence* defenceOf(int skill) {
     for (const FakeDefence& defence : fakeDefences) {
         if (defence.skill == skill) return &defence;
@@ -399,6 +441,41 @@ bool addChosen(void* table, void* chart) {
     }
     return result != 0;
 }
+
+// --- The common chart ---
+
+constexpr uintptr_t recordRead = 0x657f2b;  // The chart's card reads the learned record; calls the tweak
+constexpr uintptr_t recordUse = 0x657f4f;
+constexpr uintptr_t gameParameters = 0x9e967c;
+
+// Runs the call put at 0x657f2b with esi = the move and edi = &stance. The game's code past it
+// is replaced by a return, so either way it comes back with eax: the stance read for the game's
+// record, or the learned byte of a common move.
+uintptr_t readRecordThroughPatch(const void* move, int* stance) {
+    const uintptr_t thunk = jumpTarget(recordRead);
+    const uint8_t saved = codeByte(recordUse);
+    codeByte(recordUse) = returnOpcode;
+    uintptr_t result;
+    __asm {
+        push esi
+        push edi
+        mov esi, move
+        mov edi, stance
+        call callPatch
+        jmp done
+    callPatch:
+        call thunk
+        ret
+    done:
+        mov result, eax
+        pop edi
+        pop esi
+    }
+    codeByte(recordUse) = saved;
+    return result;
+}
+
+using FillMethod = void(__thiscall*)(void* chart, void* combo, int* stance);
 
 // Runs the check the move select makes before choosing, with the screen's message.
 void checkBeforeChoosing(wchar_t* message) {
@@ -721,6 +798,7 @@ int main(int argc, char** argv) {
     jumpTo(clearChoiceWindow, &fakeClearChoiceWindow);
     jumpTo(fillChoiceWindow, &fakeFillChoiceWindow);
     jumpTo(showChoiceWindow, &fakeShowChoiceWindow);
+    jumpTo(addChoice, &fakeAddChoice);
     at<void*>(fakeWindowHolder, 0x70) = fakeWindow;
     gameGlobal(choiceWindowHolder) = reinterpret_cast<uint32_t>(fakeWindowHolder);
     gameGlobal(decideKeys) = decideKey;
@@ -789,8 +867,9 @@ int main(int argc, char** argv) {
     animationsAtOnce = 0;
     menu(screen, decideKey, 0);
     check(windowsCleared == 1 && windowsShown == 1 && filledKind == 2 && filledCursor == 1 &&
-              listedTexts({112, 113, 114, 115, 116, 117, 118, 59}),
-        "deciding the stance button opens a list of Jo-dan .. Shinobi and Quit, on Chu-dan");
+              listedNames({L"Jo-dan", L"Chu-dan", L"Ge-dan", L"Waki", L"Iai", L"One-Handed", L"Shinobi", L"Common",
+                  L"Quit"}),
+        "deciding the stance button opens a list of Jo-dan .. Shinobi, Common and Quit, on Chu-dan");
     check(at<void*>(screen, 0x448) == fakeWindow && at<uintptr_t>(screen, screenState) != va(menuInput) &&
               animationsAtOnce == 1 && lastAnimationAtOnce == 10 && chartsBuilt == 0,
         "the screen waits for the list; the stance button is let go (10)");
@@ -822,7 +901,7 @@ int main(int argc, char** argv) {
     chooseFromList(screen, -1);
     check(at<void*>(screen, screenChart) == chartPool[0] && at<uintptr_t>(screen, screenState) == va(menuInput),
         "cancelling the list keeps the stance shown");
-    chooseFromList(screen, 7);
+    chooseFromList(screen, 8);
     check(at<void*>(screen, screenChart) == chartPool[0] && titleOf(screen) == L"Ge-dan", "Quit keeps it too");
 
     menu(screen, cancelKey, 0);
@@ -833,17 +912,18 @@ int main(int argc, char** argv) {
     at<int16_t>(shared, sharedSlot) = 0;
     at<int16_t>(shared, sharedStances) = 8;  // Dual Arms
     chooseFromList(screen, 1);
-    check(listedTexts({120, 121, 59}) && filledCursor == 0, "dual arms list Dual Arms, Shinobi Dual Arms and Quit");
+    check(listedNames({L"Dual Arms", L"Shinobi Dual Arms", L"Common", L"Quit"}) && filledCursor == 0,
+        "dual arms list Dual Arms, Shinobi Dual Arms, Common and Quit");
     check(chartsDeleted == 2 && lastBuiltStance == 9 && titleOf(screen) == L"Shinobi Dual Arms",
         "a new slot stance drops the old charts; Shinobi Dual Arms is shown");
     chooseFromList(screen, 0);
     check(at<void*>(screen, screenChart) == gameChart && titleOf(screen) == L"Dual Arms", "and back to Dual Arms");
     at<int16_t>(shared, sharedStances) = 7;  // Spear
-    const int shownBefore = windowsShown;
-    at<int>(screen, screenCursor) = 4;
-    menu(screen, decideKey, 0);
-    check(windowsShown == shownBefore && at<uintptr_t>(screen, screenState) == va(menuInput),
-        "the spear has no other stance: no list opens");
+    const int deletedBeforeSpear = chartsDeleted;
+    chooseFromList(screen, -1);
+    check(listedNames({L"Spear", L"Common", L"Quit"}) && filledCursor == 0 && chartsDeleted == deletedBeforeSpear + 1 &&
+              at<uintptr_t>(screen, screenState) == va(menuInput),
+        "the spear, of no group, lists itself, Common and Quit");
 
     // The style's rules. Slot 0 is Chu-dan; the game's chart has A (first move, command 0x10)
     // leading to B, and the defence move H; Ge-dan's chart has C (first move) leading to D and
@@ -1117,6 +1197,110 @@ int main(int argc, char** argv) {
     slotStance = -1;
     check(sendEvent(sheatheEvent, fighter, iaiMotion), "a character without a slot's stance is left to the game");
 
+    // The common chart of a Chu-dan slot. Jo-dan's combo has Toughen (510, learned), the Waki
+    // parry (520, learned but not yet for My Style) and Jo-dan's Renki Koho (540); Chu-dan's has
+    // Toughen (500, not learned) and its Renki Koho (530, learned); Iai's the gun parry (550) and
+    // its Kata (560, learned).
+    FakeEntry joToughen = {40, 510, {}, 1}, joWakiParry = {41, 520, {}, 1}, joRenki = {42, 540, {}, 1};
+    FakeEntry chuToughen = {50, 500, {}, 1}, chuRenki = {51, 530, {}, 1}, iaiGunParry = {60, 550, {}, 1},
+              iaiKata = {61, 560, {}, 1};
+    comboMoves[combos[0]] = {&joToughen, &joWakiParry, &joRenki};
+    at<int>(combos[0], 0x10) = 3;
+    comboMoves[combos[1]] = {&chuToughen, &chuRenki};
+    at<int>(combos[1], 0x10) = 2;
+    setComboNumbers(1, {0, 1, 2, 3, 5, 50, 51});
+    comboMoves[combos[4]].push_back(&iaiGunParry);
+    comboMoves[combos[4]].push_back(&iaiKata);
+    at<int>(combos[4], 0x10) = 4;
+    static uint8_t parameters[stanceRecords + 0x80 * 13] = {};
+    parameters[stanceRecords + 0x80 * 0 + 40] = 1;
+    parameters[stanceRecords + 0x80 * 0 + 41] = 3;
+    parameters[stanceRecords + 0x80 * 1 + 51] = 2;
+    parameters[stanceRecords + 0x80 * 4 + 61] = 1;
+    gameGlobal(gameParameters) = reinterpret_cast<uint32_t>(parameters);
+    at<int16_t>(shared, sharedStances) = 1;
+    at<void*>(shared, sharedCharts + 4) = nullptr;
+    at<void*>(shared, sharedCharts + 8) = nullptr;
+
+    check(codeByte(recordRead) == 0xe8, "the chart's read of the learned record calls the tweak");
+    const int builtBeforeCommon = chartsBuilt;
+    chooseFromList(screen, 7);
+    void* commonChart = at<void*>(screen, screenChart);
+    check(titleOf(screen) == L"Common" && commonChart != gameChart && chartsBuilt == builtBeforeCommon + 1 &&
+              lastBuiltChart == commonChart && lastBuiltStance == 1,
+        "choosing Common fills a new chart titled Common, with the slot's stance Chu-dan");
+    void** commonMethods = *static_cast<void***>(commonChart);
+    check(commonMethods != fakeChartMethods && commonMethods[0] == fakeChartMethods[0] &&
+              commonMethods[1] != fakeChartMethods[1] && commonMethods[2] == fakeChartMethods[2] && commonMethods[-1] == fakeChartMethods[-1],
+        "the common chart has a copy of the chart's vtable with its own fill method");
+    static uint8_t stanceComboGiven[36] = {};
+    int fillStance = 1;
+    reinterpret_cast<FillMethod>(commonMethods[1])(commonChart, stanceComboGiven, &fillStance);
+    const uint8_t* commonCombo = static_cast<const uint8_t*>(filledCombo);
+    check(filledChart == commonChart && commonCombo && commonCombo != stanceComboGiven && filledStance == &fillStance,
+        "filling it fills it from the tweak's combo, the stance as given");
+    check(at<int>(const_cast<uint8_t*>(commonCombo), 0x10) == 4, "the combo has 4 moves: Jo-dan's Renki Koho and the Kata are left out");
+    const auto* firstMoves = at<const int16_t*>(const_cast<uint8_t*>(commonCombo), 0x18);
+    const auto* firstMovesEnd = at<const int16_t*>(const_cast<uint8_t*>(commonCombo), 0x1c);
+    check(firstMovesEnd - firstMoves == 4 && firstMoves[0] == 0 && firstMoves[3] == 3,
+        "every move is a first move, in the rows' order");
+    std::vector<const FakeEntry*> rows;
+    bool treeRight = true;
+    const FakeNode* node = at<const FakeNode*>(const_cast<uint8_t*>(commonCombo), 4);
+    for (int16_t key = 0; node; ++key, node = node->higher) {
+        treeRight = treeRight && node->key == key && !node->lower;
+        rows.push_back(static_cast<const FakeEntry*>(node->entry));
+    }
+    check(treeRight && rows.size() == 4, "the tree holds the moves under keys 0-3");
+    const auto entryIs = [&](size_t row, int skill) {
+        const auto* entry = reinterpret_cast<const uint8_t*>(rows[row]);
+        return rows[row]->number == static_cast<int16_t>(row) && rows[row]->skill == skill && rows[row]->mark == 1 &&
+               rows[row]->linkCount == 0 && !rows[row]->links && entry[0x18] == 0 && entry[0x19] == static_cast<uint8_t>(row);
+    };
+    check(entryIs(0, 520) && entryIs(1, 550) && entryIs(2, 500) && entryIs(3, 530),
+        "the rows by defence move: the Waki parry, the gun parry, Chu-dan's Toughen, Chu-dan's Renki Koho");
+    check(rows[2] != &chuToughen, "the rows are copies, not the stances' moves");
+
+    int readStance = 6;
+    const auto learnedOf = [&](size_t row) {
+        const auto* learned = reinterpret_cast<const uint8_t*>(readRecordThroughPatch(rows[row], &readStance));
+        return static_cast<int>(*learned);
+    };
+    check(learnedOf(0) == 0 && learnedOf(1) == 0, "a parry learned not yet for My Style, or not at all, is not learned");
+    check(learnedOf(2) == 1, "Toughen is learned: Jo-dan's was learned, though Chu-dan's was not");
+    check(learnedOf(3) == 1, "Chu-dan's Renki Koho is learned");
+    check(readRecordThroughPatch(&entryC, &readStance) == 6, "a stance's move reads the game's record");
+
+    FakeEntry* wakiParryRow = const_cast<FakeEntry*>(rows[0]);
+    FakeEntry* gunParryRow = const_cast<FakeEntry*>(rows[1]);
+    FakeEntry* toughenRow = const_cast<FakeEntry*>(rows[2]);
+    static FakeCard commonWaki, commonGun, commonToughen;
+    makeCard(commonWaki, *wakiParryRow, 0, 2, 1);
+    makeCard(commonGun, *gunParryRow, 0, 4, 0);
+    makeCard(commonToughen, *toughenRow, 0, 4, 1);
+    std::vector<FakeCard*> commonCards = {&commonWaki, &commonGun, &commonToughen};
+    setCards(commonChart, commonCards);
+    for (FakeCard* card : gameCards) card->state = 0;
+    for (FakeCard* card : geDanCards) card->state = 0;
+    commonGun.state = 1;
+    chooseFromList(screen, 1);
+    at<void*>(gameChart, 0x68) = &cardH;
+    message[0] = 0;
+    checkBeforeChoosing(message);
+    check(std::wstring(message) == gameTexts[744] + L" (Common)",
+        "H is refused with 744 and Common, where the gun parry of its type is chosen");
+    commonGun.state = 0;
+
+    addedMoves.clear();
+    addChosen(table, gameChart);
+    check(addedMoves.size() == 2 && addedMoves[0].number == 4 && addedMoves[0].skill == 520 &&
+              addedMoves[1].number == 50 && addedMoves[1].skill == 500,
+        "creating the style puts in the Waki parry under Chu-dan's free 4 and Toughen under its own 50");
+
+    changeOption(item, 0);
+    check(codeByte(recordRead) == 0x8b, "off: the chart reads the record with the game's code");
+    changeOption(item, 1);
+
     at<void*>(shared, sharedCharts + 4) = nullptr;
     at<void*>(shared, sharedCharts + 8) = nullptr;
     chooseFromList(screen, 2);  // Shows Ge-dan
@@ -1127,8 +1311,8 @@ int main(int argc, char** argv) {
     release(owner);
     bool gameChartDeleted = false;
     for (void* chart : deletedCharts) gameChartDeleted |= chart == gameChart;
-    check(chartsDeleted == deletedBefore + 2 && gameChartDeleted && at<void*>(owner, ownerShared) == nullptr,
-        "closing the screens deletes the tweak's chart and lets the game delete its own");
+    check(chartsDeleted == deletedBefore + 3 && gameChartDeleted && at<void*>(owner, ownerShared) == nullptr,
+        "closing the screens deletes the tweak's charts (Ge-dan, Common) and lets the game delete its own");
 
     return finish("custom_style_stance_native_probe");
 }

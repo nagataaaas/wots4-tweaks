@@ -9,6 +9,10 @@ namespace tweaks::custom_style_stance {
 constexpr int slotCount = 3;  // A My Style holds up to three stances
 constexpr int stanceCount = 13;
 constexpr int16_t noStance = -1;
+// The charts a slot can show: one per stance, then the common chart of every stance's defence
+// moves (common_chart.h). The common chart's index is never given to the game as a stance.
+constexpr int commonChart = stanceCount;
+constexpr int chartKindCount = stanceCount + 1;
 
 // Shared by the My Style screens (made at 0x5c9cfc, freed at 0x5c9ea0).
 struct SharedData {
@@ -73,14 +77,19 @@ struct Card {
 };
 enum CardState : int { cardFree = 0, cardChosen = 1, cardDisabled = 2 };
 
-// A move of a stance's SkillComboData.
+// A move of a stance's SkillComboData (0x1c bytes, made at 0x597bd0).
 struct ComboEntry {
     static constexpr uint32_t number = 0x0;     // int16, the move's number in the stance
     static constexpr uint32_t skill = 0x2;      // int16, SkillData ID
     static constexpr uint32_t mark = 0x6;       // uint8, not 0 for a first move
     static constexpr uint32_t linkCount = 0x8;  // uint8
     static constexpr uint32_t links = 0xc;      // int16*, numbers of the moves it leads to
+    static constexpr uint32_t otherCount = 0x10;  // uint8, a second list read from the file
+    static constexpr uint32_t others = 0x14;      // int16*
+    static constexpr uint32_t column = 0x18;      // int8, where the chart draws its card
+    static constexpr uint32_t row = 0x19;         // int8
 };
+constexpr uint32_t comboEntrySize = 0x1c;
 
 template <typename Visit>
 void forEachCard(void* chart, Visit visit) {
