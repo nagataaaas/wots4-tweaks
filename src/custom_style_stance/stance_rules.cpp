@@ -21,15 +21,19 @@ const TweakLog* logger = nullptr;
 
 // What decides whether two chosen cards may be in one style, as the game decides it for the
 // cards of one chart (0x6587da, 0x658623): the text of the message that refuses them, or 0.
+// The game compares first move commands of attacks only (0x6585a0): defence moves are first
+// moves with command 0, and differ by their type instead.
 uint32_t clashBetween(void* card, void* other) {
+    const int skill = skillOf(card);
+    const int otherSkill = skillOf(other);
+    const bool defence = defenceIndex(skill) != notDefence;
+    if (defence != (defenceIndex(otherSkill) != notDefence)) return noClash;
+    if (defence) return defenceType(skill) == defenceType(otherSkill) ? defenceTakenText : noClash;
     if (isFirstMove(card) && isFirstMove(other) &&
         field<uint16_t>(card, Card::command) == field<uint16_t>(other, Card::command)) {
         return firstMoveTakenText;
     }
-    const int skill = skillOf(card);
-    const int otherSkill = skillOf(other);
-    if (defenceIndex(skill) == notDefence || defenceIndex(otherSkill) == notDefence) return noClash;
-    return defenceType(skill) == defenceType(otherSkill) ? defenceTakenText : noClash;
+    return noClash;
 }
 
 // The message that refuses a card, and the stance of the chosen card it clashes with.

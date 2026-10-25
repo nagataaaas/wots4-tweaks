@@ -310,9 +310,19 @@ void setCards(void* chart, std::vector<FakeCard*>& cards) {
     at<FakeCard**>(chart, 8) = cards.data() + cards.size();
 }
 
-// Defence moves: SkillData 300 and 301, both of type 1.
-int __cdecl fakeDefenceIndex(int skill) { return skill == 300 ? 0 : skill == 301 ? 1 : -1; }
-int __cdecl fakeDefenceType(int skill) { return skill == 300 || skill == 301 ? 1 : -1; }
+// Defence moves: SkillData 300 and 301, both of type 1, and 302 of type 2.
+struct FakeDefence {
+    int skill, index, type;
+};
+const FakeDefence fakeDefences[] = {{300, 0, 1}, {301, 1, 1}, {302, 3, 2}};
+const FakeDefence* defenceOf(int skill) {
+    for (const FakeDefence& defence : fakeDefences) {
+        if (defence.skill == skill) return &defence;
+    }
+    return nullptr;
+}
+int __cdecl fakeDefenceIndex(int skill) { return defenceOf(skill) ? defenceOf(skill)->index : -1; }
+int __cdecl fakeDefenceType(int skill) { return defenceOf(skill) ? defenceOf(skill)->type : -1; }
 __declspec(naked) void fakeNoBreak() {  // The debug assert: never break
     __asm {
         xor eax, eax
@@ -949,6 +959,21 @@ int main(int argc, char** argv) {
     check(std::wstring(message) == gameTexts[744] + L" (Ge-dan)",
         "choosing H on the game's chart is refused with 744 and Ge-dan, where G of its type is chosen");
     check(cardH.state == 0, "H, a defence move but no first move, is not dimmed (the game would say 705)");
+    // In the game's data defence moves are first moves with command 0; only their type counts.
+    entryH.mark = entryG.mark = 1;
+    cardH.command = cardG.command = 0;
+    message[0] = 0;
+    checkBeforeChoosing(message);
+    check(std::wstring(message) == gameTexts[744] + L" (Ge-dan)",
+        "defence first moves of one type with command 0 are refused with 744, not 706");
+    entryG.skill = 302;  // A defence move of another type
+    message[0] = 0;
+    checkBeforeChoosing(message);
+    check(message[0] == 0, "defence first moves of different types with command 0 do not clash");
+    entryG.skill = 301;
+    entryH.mark = entryG.mark = 0;
+    cardH.command = 0x12;
+    cardG.command = 0x23;
 
     static uint8_t top[0x200] = {};
     at<void*>(top, topShared) = shared;
