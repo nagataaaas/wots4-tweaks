@@ -34,6 +34,7 @@
 #include "enemy_pool_size/enemy_pool_size.h"
 #include "ground_item_limit/ground_item_limit.h"
 #include "weapon_durability/weapon_durability.h"
+#include "infinite_items/infinite_items.h"
 
 namespace tweaks {
 
@@ -50,7 +51,7 @@ std::vector<TweakGroup> registeredTweakGroups() {
         {{L"戦闘", L"Battle"}, {&enemySpawnIntervalTweak, &enemySpawnLimitTweak, &enemyPoolSizeTweak,
             &groundItemLimitTweak, &enemyCorpseCleanupTweak, &weaponDurabilityTweak}},
         {wots4::localizedGameText(245), {&instantJobTweak, &lootDropTweak, &setupAnytimeTweak, &rensatsuGaugeTweak,
-            &unlockAllTweak, &appearanceAllTweak, &accessoryAllTweak, &bigShotMarksTweak}},
+            &unlockAllTweak, &appearanceAllTweak, &accessoryAllTweak, &bigShotMarksTweak, &infiniteItemsTweak}},
     };
 }
 

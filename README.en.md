@@ -73,6 +73,7 @@ A collection of small "nice to have" tweaks. Each tweak can be changed individua
   - BS: the Big Shot bonus also grows with the weapon's attack power.
   - BS-: the Big Shot bonus is only added as it is and does not grow with the weapon's attack power (moves such as kicks and unarmed moves).
   - Big Shot does not work on moves without a mark. The setting applies from the next time you open a move list.
+- **Infinite Items**: items the hero uses are not used up. This covers food, drinks, whetting stones, Moves Scrolls and the like, and also Medicine that is used by itself when your health runs out. When a mission asks you to hand over items you could use yourself, such as the onigiri in Gramps' missions, you keep them too. Things you cannot use, such as keys, are still handed over. Items used by other characters are used up as before.
 
 ## Installation
 

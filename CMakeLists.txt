@@ -56,7 +56,8 @@ set(TWEAKS_TWEAK_SOURCES
     src/enemy_pool_size/enemy_pool_size.cpp
     src/ground_item_limit/ground_item_limit.cpp
     src/ground_item_limit/ground_slots.cpp
-    src/weapon_durability/weapon_durability.cpp)
+    src/weapon_durability/weapon_durability.cpp
+    src/infinite_items/infinite_items.cpp)
 
 # Use the Mod's folder name in the game folder (mods/<name>/) as <name>
 wots4_add_mod(tweaks SOURCES ${TWEAKS_CORE_SOURCES} ${TWEAKS_TWEAK_SOURCES} DEF src/mod.def
@@ -110,4 +111,5 @@ if(WOTS4_BUILD_TESTS)
     tweaks_add_native_probe(weapon_durability_native_probe)
     tweaks_add_native_probe(appearance_all_native_probe)
     tweaks_add_native_probe(big_shot_marks_native_probe)
+    tweaks_add_native_probe(infinite_items_native_probe)
 endif()
