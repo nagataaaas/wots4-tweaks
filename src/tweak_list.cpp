@@ -9,6 +9,7 @@
 #include "tweak_list.h"
 #include "laura_yobai/laura_yobai.h"
 #include "loot_drop/loot_drop.h"
+#include "loot_infinite/loot_infinite.h"
 #include "custom_style_limit/custom_style_limit.h"
 #include "custom_style_stance/custom_style_stance.h"
 #include "instant_job/instant_job.h"
@@ -50,8 +51,9 @@ std::vector<TweakGroup> registeredTweakGroups() {
         // Dropped Item Limit has a restart notice, which the next group's header cannot follow.
         {{L"戦闘", L"Battle"}, {&enemySpawnIntervalTweak, &enemySpawnLimitTweak, &enemyPoolSizeTweak,
             &groundItemLimitTweak, &enemyCorpseCleanupTweak, &weaponDurabilityTweak}},
-        {wots4::localizedGameText(245), {&instantJobTweak, &lootDropTweak, &setupAnytimeTweak, &rensatsuGaugeTweak,
-            &unlockAllTweak, &appearanceAllTweak, &accessoryAllTweak, &bigShotMarksTweak, &infiniteItemsTweak}},
+        {wots4::localizedGameText(245), {&instantJobTweak, &lootDropTweak, &lootInfiniteTweak, &setupAnytimeTweak,
+            &rensatsuGaugeTweak, &unlockAllTweak, &appearanceAllTweak, &accessoryAllTweak, &bigShotMarksTweak,
+            &infiniteItemsTweak}},
     };
 }
 

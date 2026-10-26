@@ -24,6 +24,7 @@ set(TWEAKS_TWEAK_SOURCES
     src/game_code.cpp
     src/laura_yobai/laura_yobai.cpp
     src/loot_drop/loot_drop.cpp
+    src/loot_infinite/loot_infinite.cpp
     src/custom_style_limit/custom_style_limit.cpp
     src/custom_style_stance/common_chart.cpp
     src/custom_style_stance/custom_style_stance.cpp
@@ -84,6 +85,7 @@ if(WOTS4_BUILD_TESTS)
     endfunction()
     tweaks_add_native_probe(laura_yobai_native_probe)
     tweaks_add_native_probe(loot_drop_native_probe)
+    tweaks_add_native_probe(loot_infinite_native_probe)
     tweaks_add_native_probe(custom_style_limit_native_probe)
     tweaks_add_native_probe(custom_style_stance_native_probe)
     tweaks_add_native_probe(instant_job_native_probe)
