@@ -122,6 +122,20 @@ void* chartOf(void* screen, SlotCharts& charts, int chartKind) {
     return chart;
 }
 
+// The stance the move preview character is dressed in while a chart is shown. The game dresses
+// it in the slot's stance, and the common chart's cards are mostly of that stance.
+int previewStanceFor(const SlotCharts& charts, int chartKind) {
+    return chartKind == commonChart ? charts.slotStance : chartKind;
+}
+
+// The character plays only moves of the stance it is dressed in, so it is dressed again when
+// the shown chart's stance differs.
+void dressPreview(void* screen, const SlotCharts& charts, int fromChart, int toChart) {
+    const int stance = previewStanceFor(charts, toChart);
+    if (stance == previewStanceFor(charts, fromChart)) return;
+    showPreviewStance(sharedOf(screen), stance);
+}
+
 // Draws and edits the chart in place of the game's one of the edited slot.
 void show(void* screen, void* chart, int stance) {
     dimCardsTakenElsewhere(chart);
@@ -160,6 +174,7 @@ void showStance(void* screen, int chartKind) {
     if (!listed) return;
     void* chart = chartKind == charts->slotStance ? charts->gameChart : chartOf(screen, *charts, chartKind);
     if (!chart) return;
+    dressPreview(screen, *charts, charts->shownStance, chartKind);
     charts->shownStance = static_cast<int16_t>(chartKind);
     show(screen, chart, chartKind);
 }
@@ -172,6 +187,9 @@ void showGameChart(void* screen) {
     slotChart(shared, editedSlot(shared)) = charts->gameChart;
     field<void*>(screen, MoveSelectScreen::shownChart) = charts->gameChart;
     setStanceTitle(screen, charts->slotStance);
+    // The stance select screen dresses the character only when its highlighted stance changes,
+    // so it is left in the slot's stance, as that screen last dressed it.
+    dressPreview(screen, *charts, charts->shownStance, charts->slotStance);
     charts->shownStance = charts->slotStance;
 }
 

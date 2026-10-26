@@ -20,6 +20,10 @@ void placeLayout(void* layout);
 const wchar_t* stanceName(int stance);
 // Fills screen->shownChart with the cards of the edited slot's stance (0x5cbef0).
 void buildShownChart(void* screen);
+// Dresses the character that plays the move under the cursor in the stance's sample style and
+// loads its moves' motions, as the stance select screen does when a stance is highlighted
+// (0x5d11a0). The character plays only the moves of the stance it is dressed in.
+void showPreviewStance(void* shared, int stance);
 // Updates the card information beside the menu (0x5cc150 with no card).
 void refreshCardInformation(void* screen);
 // A new, empty SkillChartChoice (0x6c7020 and 0x657280), or null; and its deletion (vtable 0).

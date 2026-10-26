@@ -1,6 +1,7 @@
 #include "game_calls.h"
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include "my_style_screen.h"
 
 namespace tweaks::custom_style_stance {
@@ -70,6 +71,20 @@ uintptr_t slotStanceAddress;
 using SkillLookup = int(__cdecl*)(int skill);
 SkillLookup defenceIndexOf;
 SkillLookup defenceTypeOf;
+
+// The stance select screen's step that dresses the move preview character in a stance's sample
+// style and loads its motions (0x5d11a0, stdcall, ret 8). Of the screen it reads only the shared
+// data (+0x34) and the stance it showed last (+0x258, skipped when equal), and writes the
+// stance's move count text (+0x1bc, 0x80 bytes, 0x5d07f0).
+using ShowPreviewStance = void(__stdcall*)(void* stanceScreen, int stance);
+ShowPreviewStance showPreviewStanceOf;
+struct StanceScreenStandIn {
+    static constexpr uint32_t size = 0x25c;  // As the game makes it (0x5c9cb0)
+    static constexpr uint32_t shared = 0x34;
+    static constexpr uint32_t shownStance = 0x258;
+};
+constexpr int notAStance = -2;  // Never a stance given, so the step always runs
+alignas(4) uint8_t stanceScreenStandIn[StanceScreenStandIn::size];
 
 void* choiceWindow() {
     const uintptr_t holder = *choiceWindowHolder;
@@ -153,6 +168,7 @@ void setUpGameCalls(const GameImage& game) {
     slotStanceAddress = game.address(0x486050);
     defenceIndexOf = reinterpret_cast<SkillLookup>(game.address(0x59d9b0));
     defenceTypeOf = reinterpret_cast<SkillLookup>(game.address(0x59da20));
+    showPreviewStanceOf = reinterpret_cast<ShowPreviewStance>(game.address(0x5d11a0));
 }
 
 // ecx = animation, edi = screen
@@ -413,6 +429,15 @@ int slotStanceOf(void* parameter) {
         mov stance, eax
     }
     return stance;
+}
+
+// The stance select screen is not reachable from the move select screen, so a stand-in with
+// only what the step reads is given.
+void showPreviewStance(void* shared, int stance) {
+    std::memset(stanceScreenStandIn, 0, sizeof(stanceScreenStandIn));
+    field<void*>(stanceScreenStandIn, StanceScreenStandIn::shared) = shared;
+    field<int>(stanceScreenStandIn, StanceScreenStandIn::shownStance) = notAStance;
+    showPreviewStanceOf(stanceScreenStandIn, stance);
 }
 
 int defenceIndex(int skill) {

@@ -45,6 +45,7 @@ constexpr uintptr_t clearChoiceWindow = 0x5bda60;
 constexpr uintptr_t fillChoiceWindow = 0x5be410;
 constexpr uintptr_t showChoiceWindow = 0x5bddf0;
 constexpr uintptr_t addChoice = 0x5bdb20;
+constexpr uintptr_t showPreviewStance = 0x5d11a0;
 constexpr uintptr_t choiceWindowHolder = 0x9ebb8c;  // [[0x9ebb8c]+0x70] is the window
 // Game globals the menu reads
 constexpr uintptr_t decideKeys = 0x9db500;
@@ -161,6 +162,15 @@ __declspec(naked) void fakeStanceName() {  // edx = stance
     }
 }
 void __cdecl fakeFree(void*) {}
+// The stance select screen's step that dresses the move preview character (0x5d11a0).
+std::vector<int> dressedStances;
+bool dressedRight = true;
+void* expectedShared;
+void __stdcall fakeShowPreviewStance(void* stanceScreen, int stance) {
+    dressedStances.push_back(stance);
+    dressedRight = dressedRight && at<void*>(stanceScreen, 0x34) == expectedShared &&
+                   at<int>(stanceScreen, 0x258) != stance;
+}
 
 // The choice window: what it was filled with, and its state.
 constexpr uint32_t windowState = 0x38, windowChosen = 0xa0, windowOpenState = 2, windowClosedState = 4;
@@ -799,6 +809,7 @@ int main(int argc, char** argv) {
     jumpTo(fillChoiceWindow, &fakeFillChoiceWindow);
     jumpTo(showChoiceWindow, &fakeShowChoiceWindow);
     jumpTo(addChoice, &fakeAddChoice);
+    jumpTo(showPreviewStance, &fakeShowPreviewStance);
     at<void*>(fakeWindowHolder, 0x70) = fakeWindow;
     gameGlobal(choiceWindowHolder) = reinterpret_cast<uint32_t>(fakeWindowHolder);
     gameGlobal(decideKeys) = decideKey;
@@ -811,6 +822,7 @@ int main(int argc, char** argv) {
     static uint8_t screen[0x500] = {};
     static uint8_t shared[0x100] = {};
     static uint8_t gameChart[0x9c] = {};
+    expectedShared = shared;
     fakeConstructChart(gameChart);
     at<void*>(screen, screenLayoutList) = list;
     at<void*>(screen, screenShared) = shared;
@@ -908,6 +920,9 @@ int main(int argc, char** argv) {
     check(at<void*>(screen, screenChart) == gameChart && at<void*>(shared, sharedCharts) == gameChart &&
               titleOf(screen) == L"Chu-dan",
         "leaving the menu gives the game its chart and title back");
+    check(dressedStances == std::vector<int>{2, 0, 1, 2, 1} && dressedRight,
+        "the move preview is dressed in each stance shown (Ge-dan, Jo-dan, Chu-dan, Ge-dan) and in the slot's "
+        "stance on leaving the menu, never on cancel or Quit");
 
     at<int16_t>(shared, sharedSlot) = 0;
     at<int16_t>(shared, sharedStances) = 8;  // Dual Arms
@@ -1229,6 +1244,8 @@ int main(int argc, char** argv) {
     check(titleOf(screen) == L"Common" && commonChart != gameChart && chartsBuilt == builtBeforeCommon + 1 &&
               lastBuiltChart == commonChart && lastBuiltStance == 1,
         "choosing Common fills a new chart titled Common, with the slot's stance Chu-dan");
+    check(!dressedStances.empty() && dressedStances.back() == 1 && dressedRight,
+        "the move preview of Common is in the slot's stance Chu-dan");
     void** commonMethods = *static_cast<void***>(commonChart);
     check(commonMethods != fakeChartMethods && commonMethods[0] == fakeChartMethods[0] &&
               commonMethods[1] != fakeChartMethods[1] && commonMethods[2] == fakeChartMethods[2] && commonMethods[-1] == fakeChartMethods[-1],
