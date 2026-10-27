@@ -2,6 +2,11 @@
 
 [日本語](CHANGELOG.md)
 
+## [v2026.10.27](https://github.com/nagataaaas/wots4-tweaks/releases/tag/v2026.10.27)
+
+- Added Endless Loot. A body can be searched or kicked again and again, even after it gave you an item. Its belongings do not run out either, so the same item can come again and again.
+- With Mixed-Stance My Style, the move preview now plays while choosing a move of another stance.
+
 ## [v2026.10.26](https://github.com/nagataaaas/wots4-tweaks/releases/tag/v2026.10.26)
 
 - Added Infinite Items. Food, drinks, whetting stones, Moves Scrolls, Medicine and other items the hero uses are not used up. Usable items handed over in missions, such as onigiri, are kept too.
